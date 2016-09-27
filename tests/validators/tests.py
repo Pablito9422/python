@@ -9,6 +9,7 @@ from django.core.files.base import ContentFile
 from django.core.validators import (
     BaseValidator,
     DecimalValidator,
+    DomainNameValidator,
     EmailValidator,
     FileExtensionValidator,
     MaxLengthValidator,
@@ -21,6 +22,7 @@ from django.core.validators import (
     URLValidator,
     int_list_validator,
     validate_comma_separated_integer_list,
+    validate_domain_name,
     validate_email,
     validate_image_file_extension,
     validate_integer,
@@ -618,6 +620,25 @@ TEST_DATA = [
     (ProhibitNullCharactersValidator(), "\x00something", ValidationError),
     (ProhibitNullCharactersValidator(), "something", None),
     (ProhibitNullCharactersValidator(), None, None),
+    (validate_domain_name, '000000.org', None),
+    (validate_domain_name, 'localhost', None),
+    (validate_domain_name, 'python.org', None),
+    (validate_domain_name, 'python.co.uk', None),
+    (validate_domain_name, 'python.tk', None),
+    (validate_domain_name, 'domain.with.idn.tld.उदाहरण.परीक्ष', None),
+    (validate_domain_name, 'ıçğü.com', None),
+    (validate_domain_name, 'xn--7ca6byfyc.com', None),
+    (validate_domain_name, 'hg.python.org', None),
+    (validate_domain_name, 'python.xyz', None),
+    (validate_domain_name, 'djangoproject.com', None),
+    (validate_domain_name, 'DJANGOPROJECT.COM', None),
+    (validate_domain_name, 'localhost', None),
+    (validate_domain_name, 'spam.eggs', None),
+    (validate_domain_name, 'python-python.com', None),
+    (validate_domain_name, 'python..org', ValidationError),
+    (validate_domain_name, 'python-.org', ValidationError),
+    (validate_domain_name, 'python.name.uk', None),
+    (validate_domain_name, 'python.tips', None),
 ]
 
 # Add valid and invalid URL tests.
@@ -846,4 +867,28 @@ class TestValidatorEquality(TestCase):
         self.assertNotEqual(
             ProhibitNullCharactersValidator(message="message", code="code1"),
             ProhibitNullCharactersValidator(message="message", code="code2"),
+        )
+
+    def test_domain_name_equality(self):
+        self.assertEqual(
+            DomainNameValidator(),
+            DomainNameValidator(),
+        )
+        self.assertNotEqual(
+            DomainNameValidator(),
+            EmailValidator(),
+        )
+        self.assertNotEqual(
+            DomainNameValidator(),
+            DomainNameValidator(code='custom_code'),
+        )
+        self.assertEqual(
+            DomainNameValidator(message='custom error message'),
+            DomainNameValidator(message='custom error message'),
+        )
+        self.assertNotEqual(
+            DomainNameValidator(message='custom error message'),
+            DomainNameValidator(
+                message='custom error message', code='custom_code'
+            ),
         )

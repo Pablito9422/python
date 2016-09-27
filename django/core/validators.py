@@ -252,7 +252,21 @@ class EmailValidator:
 
 validate_email = EmailValidator()
 
-slug_re = _lazy_re_compile(r"^[-a-zA-Z0-9_]+\Z")
+
+@deconstructible
+class DomainNameValidator(RegexValidator):
+    message = _('Enter a valid domain name value.')
+    regex = _lazy_re_compile(
+        r'(?:' +
+        URLValidator.ipv4_re + '|' +
+        URLValidator.ipv6_re + '|' +
+        URLValidator.host_re + ')',
+        re.IGNORECASE
+    )
+
+validate_domain_name = DomainNameValidator()
+
+slug_re = _lazy_re_compile(r'^[-a-zA-Z0-9_]+\Z')
 validate_slug = RegexValidator(
     slug_re,
     # Translators: "letters" means latin letters: a-z and A-Z.

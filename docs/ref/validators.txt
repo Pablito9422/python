@@ -194,12 +194,32 @@ to, or in lieu of custom ``field.clean()`` methods.
         The maximum length of values that could be considered valid. Defaults
         to 2048 characters.
 
+        
+``DomainNameValidator``
+-----------------------
+
+.. class:: DomainNameValidator()
+
+    .. versionadded:: 1.11
+
+    A :class:`RegexValidator` that ensures a value looks like a domain name,
+    and raises an error code of ``'invalid'`` if it doesn't.
+
 ``validate_email``
 ------------------
 
 .. data:: validate_email
 
     An :class:`EmailValidator` instance without any customizations.
+
+``validate_domain_name``
+------------------------
+
+.. data:: validate_domain_name
+
+    .. versionadded:: 1.11
+
+    A :class:`DomainNameValidator` instance.
 
 ``validate_slug``
 -----------------
