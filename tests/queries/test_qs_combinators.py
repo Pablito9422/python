@@ -256,7 +256,11 @@ class QuerySetSetOperationTests(TestCase):
             )
             .values_list("num", "count")
         )
-        qs2 = Number.objects.filter(num=2).extra(select={"count": 1})
+        qs2 = (
+            Number.objects.filter(num=2)
+            .extra(select={"count": 1})
+            .values_list("num", "count")
+        )
         self.assertCountEqual(qs1.union(qs2), [(1, 0), (2, 1)])
 
     def test_union_with_values_list_on_annotated_and_unannotated(self):

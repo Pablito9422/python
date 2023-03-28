@@ -25,6 +25,7 @@ from django.db.models.expressions import (
     Exists,
     F,
     OuterRef,
+    RawSQL,
     Ref,
     ResolvedOuterRef,
     Value,
@@ -217,6 +218,7 @@ class Query(BaseExpression):
     # Holds the selects defined by a call to values() or values_list()
     # excluding annotation_select and extra_select.
     values_select = ()
+    selected = None
 
     # SQL annotation-related attributes.
     annotation_select_mask = None
@@ -487,8 +489,7 @@ class Query(BaseExpression):
                         col_alias = f"__col{index}"
                         col_ref = Ref(col_alias, col)
                         col_refs[col] = col_ref
-                        inner_query.annotations[col_alias] = col
-                        inner_query.append_annotation_mask([col_alias])
+                        inner_query.add_annotation(col, col_alias)
                     replacements[col] = col_ref
                 outer_query.annotations[alias] = aggregate.replace_expressions(
                     replacements
@@ -507,6 +508,7 @@ class Query(BaseExpression):
         else:
             outer_query = self
             self.select = ()
+            self.selected = None
             self.default_cols = False
             self.extra = {}
             if self.annotations:
@@ -1116,13 +1118,10 @@ class Query(BaseExpression):
         if select:
             self.append_annotation_mask([alias])
         else:
-            annotation_mask = (
-                value
-                for value in dict.fromkeys(self.annotation_select)
-                if value != alias
-            )
-            self.set_annotation_mask(annotation_mask)
+            self.set_annotation_mask(set(self.annotation_select).difference({alias}))
         self.annotations[alias] = annotation
+        if self.selected:
+            self.selected[alias] = alias
 
     def resolve_expression(self, query, *args, **kwargs):
         clone = self.clone()
@@ -2075,6 +2074,7 @@ class Query(BaseExpression):
         self.select_related = False
         self.set_extra_mask(())
         self.set_annotation_mask(())
+        self.selected = None
 
     def clear_select_fields(self):
         """
@@ -2084,10 +2084,12 @@ class Query(BaseExpression):
         """
         self.select = ()
         self.values_select = ()
+        self.selected = None
 
     def add_select_col(self, col, name):
         self.select += (col,)
         self.values_select += (name,)
+        self.selected[name] = len(self.select) - 1
 
     def set_select(self, cols):
         self.default_cols = False
@@ -2337,13 +2339,28 @@ class Query(BaseExpression):
         """Set the mask of annotations that will be returned by the SELECT."""
         if names is None:
             self.annotation_select_mask = None
+            if self.selected:
+                # Augment selected with all annotations as the mask was removed.
+                for name in self.annotations:
+                    self.selected[name] = name
         else:
-            self.annotation_select_mask = list(dict.fromkeys(names))
+            self.annotation_select_mask = set(names)
+            if self.selected:
+                # Prune the masked annotations
+                self.selected = {
+                    key: value
+                    for key, value in self.selected.items()
+                    if not isinstance(value, str)
+                    or value in self.annotation_select_mask
+                }
+                # Append the unmasked annotations
+                for name in names:
+                    self.selected[name] = name
         self._annotation_select_cache = None
 
     def append_annotation_mask(self, names):
         if self.annotation_select_mask is not None:
-            self.set_annotation_mask((*self.annotation_select_mask, *names))
+            self.set_annotation_mask(self.annotation_select_mask.union(names))
 
     def set_extra_mask(self, names):
         """
@@ -2362,6 +2379,7 @@ class Query(BaseExpression):
         self.clear_select_fields()
         self.has_select_fields = True
 
+        selected = {}
         if fields:
             field_names = []
             extra_names = []
@@ -2370,13 +2388,16 @@ class Query(BaseExpression):
                 # Shortcut - if there are no extra or annotations, then
                 # the values() clause must be just field names.
                 field_names = list(fields)
+                selected = dict(zip(fields, range(len(fields))))
             else:
                 self.default_cols = False
                 for f in fields:
-                    if f in self.extra_select:
+                    if extra := self.extra_select.get(f):
                         extra_names.append(f)
+                        selected[f] = RawSQL(*extra)
                     elif f in self.annotation_select:
                         annotation_names.append(f)
+                        selected[f] = f
                     elif f in self.annotations:
                         raise FieldError(
                             f"Cannot select the '{f}' alias. Use annotate() to "
@@ -2388,13 +2409,13 @@ class Query(BaseExpression):
                         # `f` is not resolvable.
                         if self.annotation_select:
                             self.names_to_path(f.split(LOOKUP_SEP), self.model._meta)
+                        selected[f] = len(field_names)
                         field_names.append(f)
             self.set_extra_mask(extra_names)
             self.set_annotation_mask(annotation_names)
-            selected = frozenset(field_names + extra_names + annotation_names)
         else:
             field_names = [f.attname for f in self.model._meta.concrete_fields]
-            selected = frozenset(field_names)
+            selected = dict.fromkeys(field_names, None)
         # Selected annotations must be known before setting the GROUP BY
         # clause.
         if self.group_by is True:
@@ -2417,6 +2438,7 @@ class Query(BaseExpression):
 
         self.values_select = tuple(field_names)
         self.add_fields(field_names, True)
+        self.selected = selected if fields else None
 
     @property
     def annotation_select(self):
@@ -2430,9 +2452,9 @@ class Query(BaseExpression):
             return {}
         elif self.annotation_select_mask is not None:
             self._annotation_select_cache = {
-                k: self.annotations[k]
-                for k in self.annotation_select_mask
-                if k in self.annotations
+                k: v
+                for k, v in self.annotations.items()
+                if k in self.annotation_select_mask
             }
             return self._annotation_select_cache
         else:
