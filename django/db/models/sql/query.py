@@ -2439,6 +2439,11 @@ class Query(BaseExpression):
         self.values_select = tuple(field_names)
         self.add_fields(field_names, True)
         self.selected = selected if fields else None
+        if self.combinator:
+            for query in self.combined_queries:
+                if not query.has_select_fields:
+                    query.set_values(fields)
+            return
 
     @property
     def annotation_select(self):
