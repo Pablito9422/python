@@ -129,9 +129,7 @@ form .aligned div.radiolist {
 
 form .aligned p.help,
 form .aligned div.help {
-    margin-top: 0;
-    margin-left: 160px;
-    padding-left: 10px;
+    margin-top: 5px;
 }
 
 form .aligned p.date div.help.timezonewarning,
