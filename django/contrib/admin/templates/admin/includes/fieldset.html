@@ -13,14 +13,12 @@
                             {% if field.is_checkbox %}
                                 {{ field.field }}{{ field.label_tag }}
                             {% else %}
-                                <div>
-                                    {{ field.label_tag }}
-                                    {% if field.is_readonly %}
-                                        <div class="readonly">{{ field.contents }}</div>
-                                    {% else %}
-                                        {{ field.field }}
-                                    {% endif %}
-                                </div>
+                                {{ field.label_tag }}
+                                {% if field.is_readonly %}
+                                    <div class="readonly">{{ field.contents }}</div>
+                                {% else %}
+                                    {{ field.field }}
+                                {% endif %}
                             {% endif %}
                         </div>
                     {% if field.field.help_text %}

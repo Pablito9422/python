@@ -24,10 +24,12 @@ form .form-row p {
 
 .flex-container {
     display: flex;
+    flex-flow: column wrap;
+    align-items: flex-start;
 }
 
-.form-multiline {
-    flex-wrap: wrap;
+.flex-container.checkbox-row {
+    flex-flow: row wrap;
 }
 
 .form-multiline > div {

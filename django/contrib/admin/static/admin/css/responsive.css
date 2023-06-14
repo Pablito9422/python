@@ -544,14 +544,6 @@ input[type="submit"], button {
         width: calc(100vw - 30px);
     }
 
-    .flex-container {
-        flex-flow: column;
-    }
-
-    .flex-container.checkbox-row {
-        flex-flow: row;
-    }
-
     textarea {
         max-width: none;
     }
