@@ -137,8 +137,7 @@ thead th.sorted .text {
 }
 
 form .aligned ul {
-    margin-right: 163px;
-    padding-right: 10px;
+    margin-right: 0;
     margin-left: 0;
     padding-left: 0;
 }
@@ -149,6 +148,7 @@ form ul.inline li {
     padding-left: 7px;
 }
 
+<<<<<<< HEAD
 form .aligned p.help,
 form .aligned div.help {
     margin-left: 0;
@@ -156,6 +156,8 @@ form .aligned div.help {
     padding-right: 10px;
 }
 
+=======
+>>>>>>> 34a13194 (Removed extra margins for wide and aligned fieldsets)
 form div.help ul,
 form .aligned .checkbox-row + .help,
 form .aligned p.date div.help.timezonewarning,
@@ -169,7 +171,13 @@ form .wide p.help,
 form .wide ul.errorlist,
 form .wide div.help {
     padding-left: 0;
-    padding-right: 50px;
+}
+
+form .wide p,
+form .wide ul.errorlist,
+form .wide input + p.help,
+form .wide input + div.help {
+    margin-left: 0px;
 }
 
 .submit-row {
