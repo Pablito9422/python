@@ -83,8 +83,6 @@ form ul.inline li {
 .aligned label {
     display: block;
     padding: 4px 10px 0 0;
-    min-width: 160px;
-    width: 160px;
     word-wrap: break-word;
     line-height: 1;
 }
@@ -126,7 +124,12 @@ form .aligned div.radiolist {
 
 form .aligned p.help,
 form .aligned div.help {
-    margin-top: 5px;
+    margin-bottom: 8px;
+}
+
+form .aligned .errors p.help,
+form .aligned .errors div.help {
+    margin-bottom: 2px;
 }
 
 form .aligned p.date div.help.timezonewarning,
@@ -173,19 +176,9 @@ fieldset .fieldBox {
     margin-right: 20px;
 }
 
-/* WIDE FIELDSETS */
-
-.wide label {
-    width: 200px;
-}
-
 form div.help ul {
     padding-left: 0;
     margin-left: 0;
-}
-
-.colM fieldset.wide .vLargeTextField, .colM fieldset.wide .vXMLLargeTextField {
-    width: 450px;
 }
 
 /* COLLAPSED FIELDSETS */
