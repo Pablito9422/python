@@ -417,7 +417,9 @@ subclass::
         Example::
 
             {
-                "classes": ["extrapretty",],
+                "classes": [
+                    "extrapretty",
+                ],
             }
 
         One useful class defined by the default admin site stylesheet is
