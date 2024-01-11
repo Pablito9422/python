@@ -839,7 +839,7 @@ class UniqueConstraintTests(TestCase):
         constraint = UniqueConstraintProduct._meta.constraints[1]
         msg = "Custom message"
         non_unique_product = UniqueConstraintProduct(
-            color=self.p1.color, 
+            color=self.p1.color,
             age=self.p1.age,
         )
         with self.assertRaisesMessage(ValidationError, msg) as cm:
