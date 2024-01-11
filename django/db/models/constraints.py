@@ -455,7 +455,7 @@ class UniqueConstraint(BaseConstraint):
                     validation_error_message = self.get_violation_error_message()
                     violation_error_code = self.violation_error_code
                 raise ValidationError(
-                    validation_error_message, 
+                    validation_error_message,
                     code=violation_error_code,
                 )
         else:
