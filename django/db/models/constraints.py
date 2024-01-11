@@ -447,7 +447,9 @@ class UniqueConstraint(BaseConstraint):
                 if self.violation_error_message == self.default_violation_error_message:
                     # When fields are defined, use the unique_error_message() as
                     # a default for backward compatibility.
-                    validation_error_message = instance.unique_error_message(model, self.fields)
+                    validation_error_message = instance.unique_error_message(
+                        model, self.fields
+                    )
                     violation_error_code = None
                 else:
                     validation_error_message = self.get_violation_error_message()
