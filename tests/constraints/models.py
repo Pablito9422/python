@@ -44,7 +44,7 @@ class UniqueConstraintProduct(models.Model):
                 name="color_age_uniq",
                 violation_error_code="custom_code",
                 violation_error_message="Custom message",
-            )
+            ),
         ]
 
 
