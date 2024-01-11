@@ -802,11 +802,11 @@ class UniqueConstraintTests(TestCase):
         UniqueConstraintConditionProduct(
             name=obj1.name, color="blue"
         ).validate_constraints()
-        
+
         msg = "Constraint “name_without_color_uniq” is violated."
         with self.assertRaisesMessage(ValidationError, msg):
             UniqueConstraintConditionProduct(name=obj2.name).validate_constraints()
-            
+
         msg = "Custom message"
         with self.assertRaisesMessage(ValidationError, msg) as cm:
             UniqueConstraintProduct(
