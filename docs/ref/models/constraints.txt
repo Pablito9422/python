@@ -302,6 +302,8 @@ The error message used when ``ValidationError`` is raised during
 :ref:`model validation <validating-objects>`. Defaults to
 :attr:`.BaseConstraint.violation_error_message`.
 
+.. versionadded:: 5.1
+
 This message *is* also used for :class:`UniqueConstraint`\s with
 :attr:`~UniqueConstraint.fields` and without a
 :attr:`~UniqueConstraint.condition`. The error message of such 
