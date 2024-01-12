@@ -207,6 +207,11 @@ Models
   :class:`~django.db.models.TextField`, or
   :class:`~django.contrib.postgres.fields.ArrayField` can now be :ref:`sliced
   <slicing-using-f>`.
+* :attr:`UniqueConstraint.violation_error_code` and 
+  :attr:`UniqueConstraint.violation_error_message` will now show the custom
+  code and message if set, also for :class:`UniqueConstraint`\s with
+  :attr:`~UniqueConstraint.fields` and without a
+  :attr:`~UniqueConstraint.condition`
 
 Requests and Responses
 ~~~~~~~~~~~~~~~~~~~~~~
