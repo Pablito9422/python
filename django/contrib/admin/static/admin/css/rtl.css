@@ -176,6 +176,17 @@ fieldset .fieldBox {
     padding: 10px 12px;
 }
 
+.form-multiline .fieldBox {
+    margin-left: 40px;
+    margin-right: 0;
+}
+
+.wide .fieldBox {
+    margin-left: 80px;
+    margin-right: 0;
+}
+
+
 /* WIDGETS */
 
 .calendarnav-previous {

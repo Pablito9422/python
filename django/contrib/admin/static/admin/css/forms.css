@@ -28,7 +28,8 @@ form .form-row p {
     align-items: flex-start;
 }
 
-.flex-container.checkbox-row {
+.flex-container.checkbox-row,
+.flex-container.form-multiline {
     flex-flow: row wrap;
 }
 
@@ -176,9 +177,23 @@ fieldset .fieldBox {
     margin-right: 20px;
 }
 
+.form-multiline .fieldBox {
+    margin-right: 40px;
+}
+
+/* WIDE FIELDSETS */
+
+.wide .fieldBox {
+    margin-right: 80px;
+}
+
 form div.help ul {
     padding-left: 0;
     margin-left: 0;
+}
+
+.colM fieldset.wide .vLargeTextField, .colM fieldset.wide .vXMLLargeTextField {
+    width: 450px;
 }
 
 /* COLLAPSED FIELDSETS */
