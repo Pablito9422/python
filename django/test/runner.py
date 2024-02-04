@@ -23,7 +23,13 @@ import django
 from django.core.management import call_command
 from django.db import connections
 from django.test import SimpleTestCase, TestCase
-from django.test.utils import NullTimeKeeper, TimeKeeper, iter_test_cases
+from django.test.utils import (
+    NullTimeKeeper,
+    TimeKeeper,
+    iter_test_cases,
+    run_bisection,
+    run_pairing,
+)
 from django.test.utils import setup_databases as _setup_databases
 from django.test.utils import setup_test_environment
 from django.test.utils import teardown_databases as _teardown_databases
@@ -665,6 +671,8 @@ class DiscoverRunner:
         shuffle=False,
         logger=None,
         durations=None,
+        pair=None,
+        bisect=None,
         **kwargs,
     ):
         self.pattern = pattern
@@ -703,6 +711,8 @@ class DiscoverRunner:
         self._shuffler = None
         self.logger = logger
         self.durations = durations
+        self.pair = pair
+        self.bisect = bisect
 
     @classmethod
     def add_arguments(cls, parser):
@@ -802,6 +812,14 @@ class DiscoverRunner:
                 "unittest -k option."
             ),
         )
+        parser.add_argument(
+            "--pair",
+            help="Run tests in pairs to find the problem test in pairs",
+        )
+        parser.add_argument(
+            "--bisect",
+            help="Run tests in bisecting the tests to find the problem test",
+        )
         if PY312:
             parser.add_argument(
                 "--durations",
@@ -893,6 +911,28 @@ class DiscoverRunner:
         # to support running tests from two different top-levels.
         self.test_loader._top_level_dir = None
         return tests
+
+    def get_subprocess_args(self, command):
+        subprocess_args = [sys.executable] + command
+
+        if self.pattern:
+            subprocess_args.append("--pattern=%s" % self.pattern)
+        if self.failfast:
+            subprocess_args.append("--failfast")
+        if self.verbosity:
+            subprocess_args.append("--verbosity=%s" % self.verbosity)
+        if not self.interactive:
+            subprocess_args.append("--noinput")
+        if self.tags:
+            subprocess_args.append("--tag=%s" % self.tags)
+        if self.exclude_tags:
+            subprocess_args.append("--exclude_tag=%s" % self.exclude_tags)
+        if self.shuffle is not False:
+            if self.shuffle is None:
+                subprocess_args.append("--shuffle")
+            else:
+                subprocess_args.append("--shuffle=%s" % self.shuffle)
+        return subprocess_args
 
     def build_suite(self, test_labels=None, **kwargs):
         test_labels = test_labels or ["."]
@@ -1041,6 +1081,47 @@ class DiscoverRunner:
             )
         return databases
 
+    def get_test_modules(self, test_labels):
+        if test_labels:
+            return list(test_labels)
+
+        test_labels = ["."]
+        modules = {
+            test.__module__
+            for label in test_labels
+            for test in iter_test_cases(self.load_tests_for_label(label, {}))
+        }
+
+        return list(modules)
+
+    def paired_tests(self, paired_test, test_labels):
+        test_labels = self.get_test_modules(test_labels)
+
+        print("***** Trying paired execution")
+
+        # Make sure the constant member of the pair isn't in the test list
+        try:
+            test_labels.remove(paired_test)
+        except ValueError:
+            pass
+
+        subprocess_args = self.get_subprocess_args([sys.argv[0], "test"])
+        return run_pairing(paired_test, test_labels, subprocess_args)
+
+    def bisect_tests(self, bisection_label, test_labels):
+        test_labels = self.get_test_modules(test_labels)
+
+        print("***** Bisecting test suite: %s" % " ".join(test_labels))
+
+        # Make sure the bisection point isn't in the test list
+        try:
+            test_labels.remove(bisection_label)
+        except ValueError:
+            pass
+
+        subprocess_args = self.get_subprocess_args([sys.argv[0], "test"])
+        return run_bisection(bisection_label, test_labels, subprocess_args)
+
     def run_tests(self, test_labels, **kwargs):
         """
         Run the unit tests for all the test labels in the provided list.
@@ -1050,6 +1131,11 @@ class DiscoverRunner:
 
         Return the number of tests that failed.
         """
+        if self.pair:
+            return self.paired_tests(self.pair, test_labels)
+        elif self.bisect:
+            return self.bisect_tests(self.bisect, test_labels)
+
         self.setup_test_environment()
         suite = self.build_suite(test_labels)
         databases = self.get_databases(suite)

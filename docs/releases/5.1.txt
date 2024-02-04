@@ -283,6 +283,14 @@ Tests
 * The Django test runner now supports a ``--screenshots`` option to save
   screenshots for Selenium tests.
 
+* :class:`~django.test.runner.DiscoverRunner` can now perform a pairwise search
+  over a test suite and identifies a test that causes test pollution using the
+  :option:`test --pair` option.
+
+* :class:`~django.test.runner.DiscoverRunner` can now perform a binary search
+  over a test suite and identify the minimal set of tests that lead to test
+  pollution using :option:`test --bisect`.
+
 * The :class:`~django.test.RequestFactory`,
   :class:`~django.test.AsyncRequestFactory`, :class:`~django.test.Client`, and
   :class:`~django.test.AsyncClient` classes now support the ``query_params``
