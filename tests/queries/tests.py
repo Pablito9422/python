@@ -1357,6 +1357,16 @@ class Queries1Tests(TestCase):
         )
         self.assertSequenceEqual(Note.objects.exclude(negate=True), [self.n3])
 
+    def test_union_values_subquery(self):
+        items = Item.objects.filter(creator=OuterRef("pk"))
+        item_authors = Author.objects.annotate(is_creator=Exists(items)).order_by()
+        reports = Report.objects.filter(creator=OuterRef("pk"))
+        report_authors = Author.objects.annotate(is_creator=Exists(reports)).order_by()
+        all_authors = item_authors.union(report_authors).order_by("is_creator")
+        self.assertEqual(
+            list(all_authors.values_list("is_creator", flat=True)), [False, True]
+        )
+
 
 class Queries2Tests(TestCase):
     @classmethod
@@ -2182,7 +2192,7 @@ class Queries6Tests(TestCase):
                 {"tag_per_parent__max": 2},
             )
         sql = captured_queries[0]["sql"]
-        self.assertIn("AS %s" % connection.ops.quote_name("col1"), sql)
+        self.assertIn("AS %s" % connection.ops.quote_name("parent"), sql)
 
     def test_xor_subquery(self):
         self.assertSequenceEqual(
