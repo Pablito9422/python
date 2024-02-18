@@ -66,6 +66,36 @@ class RegexValidator:
 
 
 @deconstructible
+class DomainNameValidator(RegexValidator):
+    message = _('Enter a valid domain name value.')
+    ul = "\u00a1-\uffff"  # Unicode letters range (must not be a raw string).
+    # Max length for domain name labels is 63 characters per RFC 1034 sec. 3.1
+    domain_re = r"(?:\.(?!-)[a-z" + ul + r"0-9-]{1,63}(?<!-))*"
+    # Top-level domain
+    tld_re = (
+        r"\."  # dot
+        r"(?!-)"  # can't start with a dash
+        r"(?:[a-z" + ul + "-]{2,63}"  # domain label
+        r"|xn--[a-z0-9]{1,59})"  # or punycode label
+        r"(?<!-)"  # can't end with a dash
+        r"\.?"  # may have a trailing dot
+    )
+    accept_idna = True
+
+    regex = _lazy_re_compile(
+        domain_re + tld_re,
+        re.IGNORECASE
+    )
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.accept_idna = kwargs.pop('accept_idna', True)
+
+
+validate_domain_name = DomainNameValidator()
+
+
+@deconstructible
 class URLValidator(RegexValidator):
     ul = "\u00a1-\uffff"  # Unicode letters range (must not be a raw string).
 
@@ -252,19 +282,6 @@ class EmailValidator:
 
 validate_email = EmailValidator()
 
-
-@deconstructible
-class DomainNameValidator(RegexValidator):
-    message = _('Enter a valid domain name value.')
-    regex = _lazy_re_compile(
-        r'(?:' +
-        URLValidator.ipv4_re + '|' +
-        URLValidator.ipv6_re + '|' +
-        URLValidator.host_re + ')',
-        re.IGNORECASE
-    )
-
-validate_domain_name = DomainNameValidator()
 
 slug_re = _lazy_re_compile(r'^[-a-zA-Z0-9_]+\Z')
 validate_slug = RegexValidator(
