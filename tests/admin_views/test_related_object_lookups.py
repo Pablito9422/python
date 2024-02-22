@@ -117,7 +117,7 @@ class SeleniumTests(AdminSeleniumTestCase):
         self.assertHTMLEqual(
             _get_HTML_inside_element_by_id("id_source_from"),
             f"""
-            <option title="{state_name}" value="1">{state_name}</option>
+            <option value="1">{state_name}</option>
             """
         )
 

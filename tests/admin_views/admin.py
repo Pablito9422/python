@@ -128,7 +128,7 @@ from .models import (
     Thing,
     Topping,
     Transition,
-    TransitionState,
+    Transitionstate,
     Traveler,
     UnchangeableObject,
     UndeletableObject,
@@ -1302,7 +1302,7 @@ site.register(UserProxy)
 site.register(Box)
 site.register(Country, CountryAdmin)
 site.register(Traveler, TravelerAdmin)
-site.register(TransitionState)
+site.register(Transitionstate)
 site.register(Transition, TransitionAdmin)
 
 # Register core models we need in our tests
