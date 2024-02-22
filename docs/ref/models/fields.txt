@@ -115,9 +115,32 @@ human-readable name. For example::
         ("GR", "Graduate"),
     ]
 
+``choices`` can also be defined as a callable that expects no arguments and
+returns any of the formats described above. For example::
+
+    def get_currencies():
+        return {i: i for i in settings.CURRENCIES}
+
+
+    class Expense(models.Model):
+        amount = models.DecimalField(max_digits=10, decimal_places=2)
+        currency = models.CharField(max_length=3, choices=get_currencies)
+
+Passing a callable for ``choices`` can be particularly handy when, for example,
+the choices are:
+
+* the result of I/O-bound operations (which could potentially be cached), such
+  as querying a table in the same or an external database, or accessing the
+  choices from a static file.
+
+* a list that is mostly stable but could vary from time to time or from
+  project to project. Examples in this category are using third-party apps that
+  provide a well-known inventory of values, such as currencies, countries,
+  languages, time zones, etc.
+
 .. versionchanged:: 5.0
 
-    Support for mappings was added.
+    Support for mappings and callables was added.
 
 Generally, it's best to define choices inside a model class, and to
 define a suitably-named constant for each value::
@@ -368,8 +391,6 @@ scenes.
 
 ``db_comment``
 --------------
-
-.. versionadded:: 4.2
 
 .. attribute:: Field.db_comment
 
@@ -716,10 +737,6 @@ The default form widget for this field is a :class:`~django.forms.TextInput`.
         database backends, you should be aware that there are restrictions on
         ``max_length`` for some backends. Refer to the :doc:`database backend
         notes </ref/databases>` for details.
-
-    .. versionchanged:: 4.2
-
-        Support for unlimited ``VARCHAR`` columns was added on PostgreSQL.
 
 .. attribute:: CharField.db_collation
 
@@ -1214,6 +1231,69 @@ when :attr:`~django.forms.Field.localize` is ``False`` or
     type internally, while ``DecimalField`` uses Python's ``Decimal`` type. For
     information on the difference between the two, see Python's documentation
     for the :mod:`decimal` module.
+
+``GeneratedField``
+------------------
+
+.. versionadded:: 5.0
+
+.. class:: GeneratedField(expression, output_field, db_persist=None, **kwargs)
+
+A field that is always computed based on other fields in the model. This field
+is managed and updated by the database itself. Uses the ``GENERATED ALWAYS``
+SQL syntax.
+
+There are two kinds of generated columns: stored and virtual. A stored
+generated column is computed when it is written (inserted or updated) and
+occupies storage as if it were a regular column. A virtual generated column
+occupies no storage and is computed when it is read. Thus, a virtual generated
+column is similar to a view and a stored generated column is similar to a
+materialized view.
+
+.. attribute:: GeneratedField.expression
+
+    An :class:`Expression` used by the database to automatically set the field
+    value each time the model is changed.
+
+    The expressions should be deterministic and only reference fields within
+    the model (in the same database table). Generated fields cannot reference
+    other generated fields. Database backends can impose further restrictions.
+
+.. attribute:: GeneratedField.output_field
+
+    A model field instance to define the field's data type.
+
+.. attribute:: GeneratedField.db_persist
+
+    Determines if the database column should occupy storage as if it were a
+    real column. If ``False``, the column acts as a virtual column and does
+    not occupy database storage space.
+
+    PostgreSQL only supports persisted columns. Oracle only supports virtual
+    columns.
+
+.. admonition:: Refresh the data
+
+    Since the database always computed the value, the object must be reloaded
+    to access the new value after :meth:`~Model.save()`, for example, by using
+    :meth:`~Model.refresh_from_db()`.
+
+.. admonition:: Database limitations
+
+    There are many database-specific restrictions on generated fields that
+    Django doesn't validate and the database may raise an error e.g. PostgreSQL
+    requires functions and operators referenced in a generated column to be
+    marked as ``IMMUTABLE``.
+
+    You should always check that ``expression`` is supported on your database.
+    Check out `MariaDB`_, `MySQL`_, `Oracle`_, `PostgreSQL`_, or `SQLite`_
+    docs.
+
+.. _MariaDB: https://mariadb.com/kb/en/generated-columns/#expression-support
+.. _MySQL: https://dev.mysql.com/doc/refman/en/create-table-generated-columns.html
+.. _Oracle: https://docs.oracle.com/en/database/oracle/oracle-database/21/sqlrf/CREATE-TABLE.html#GUID-F9CE0CC3-13AE-4744-A43C-EAC7A71AAAB6__BABIIGBD
+.. _PostgreSQL: https://www.postgresql.org/docs/current/ddl-generated-columns.html
+.. _SQLite: https://www.sqlite.org/gencol.html#limitations
 
 ``GenericIPAddressField``
 -------------------------
@@ -2380,11 +2460,6 @@ Registering and fetching lookups
 ``Field`` implements the :ref:`lookup registration API <lookup-registration-api>`.
 The API can be used to customize which lookups are available for a field class
 and its instances, and how lookups are fetched from a field.
-
-.. versionchanged:: 4.2
-
-    Support for registering lookups on :class:`~django.db.models.Field`
-    instances was added.
 
 .. _model-field-attributes:
 

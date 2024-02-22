@@ -332,7 +332,9 @@ class BaseDatabaseSchemaEditor:
             and self.connection.features.interprets_empty_strings_as_nulls
         ):
             null = True
-        if not null:
+        if field.generated:
+            yield self._column_generated_sql(field)
+        elif not null:
             yield "NOT NULL"
         elif not self.connection.features.implied_column_null:
             yield "NULL"
@@ -422,11 +424,21 @@ class BaseDatabaseSchemaEditor:
             params = []
         return sql % default_sql, params
 
+    def _column_generated_sql(self, field):
+        """Return the SQL to use in a GENERATED ALWAYS clause."""
+        expression_sql, params = field.generated_sql(self.connection)
+        persistency_sql = "STORED" if field.db_persist else "VIRTUAL"
+        if params:
+            expression_sql = expression_sql % tuple(self.quote_value(p) for p in params)
+        return f"GENERATED ALWAYS AS ({expression_sql}) {persistency_sql}"
+
     @staticmethod
     def _effective_default(field):
         # This method allows testing its logic without a connection.
         if field.has_default():
             default = field.get_default()
+        elif field.generated:
+            default = None
         elif not field.null and field.blank and field.empty_strings_allowed:
             if field.get_internal_type() == "BinaryField":
                 default = b""
@@ -489,8 +501,7 @@ class BaseDatabaseSchemaEditor:
                                 model, field, field_type, field.db_comment
                             )
                         )
-        # Add any field index and index_together's (deferred as SQLite
-        # _remake_table needs it).
+        # Add any field index (deferred as SQLite _remake_table needs it).
         self.deferred_sql.extend(self._model_indexes_sql(model))
 
         # Make M2M tables
@@ -733,9 +744,9 @@ class BaseDatabaseSchemaEditor:
         }
         self.execute(sql, params)
         # Drop the default if we need to
-        # (Django usually does not use in-database defaults)
         if (
-            not self.skip_default_on_alter(field)
+            field.db_default is NOT_PROVIDED
+            and not self.skip_default_on_alter(field)
             and self.effective_default(field) is not None
         ):
             changes_sql, params = self._alter_column_default_sql(
@@ -847,6 +858,18 @@ class BaseDatabaseSchemaEditor:
                 "Cannot alter field %s into %s - they are not compatible types "
                 "(you cannot alter to or from M2M fields, or add or remove "
                 "through= on M2M fields)" % (old_field, new_field)
+            )
+        elif old_field.generated != new_field.generated or (
+            new_field.generated
+            and (
+                old_field.db_persist != new_field.db_persist
+                or old_field.generated_sql(self.connection)
+                != new_field.generated_sql(self.connection)
+            )
+        ):
+            raise ValueError(
+                f"Modifying GeneratedFields is not supported - the field {new_field} "
+                "must be removed and re-added with the new definition."
             )
 
         self._alter_field(
@@ -1561,19 +1584,14 @@ class BaseDatabaseSchemaEditor:
 
     def _model_indexes_sql(self, model):
         """
-        Return a list of all index SQL statements (field indexes,
-        index_together, Meta.indexes) for the specified model.
+        Return a list of all index SQL statements (field indexes, Meta.indexes)
+        for the specified model.
         """
         if not model._meta.managed or model._meta.proxy or model._meta.swapped:
             return []
         output = []
         for field in model._meta.local_fields:
             output.extend(self._field_indexes_sql(model, field))
-
-        # RemovedInDjango51Warning.
-        for field_names in model._meta.index_together:
-            fields = [model._meta.get_field(field) for field in field_names]
-            output.append(self._create_index_sql(model, fields=fields, suffix="_idx"))
 
         for index in model._meta.indexes:
             if (
@@ -1593,6 +1611,8 @@ class BaseDatabaseSchemaEditor:
         return output
 
     def _field_should_be_altered(self, old_field, new_field, ignore=None):
+        if not old_field.concrete and not new_field.concrete:
+            return False
         ignore = ignore or set()
         _, old_path, old_args, old_kwargs = old_field.deconstruct()
         _, new_path, new_args, new_kwargs = new_field.deconstruct()

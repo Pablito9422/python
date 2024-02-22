@@ -471,6 +471,14 @@ class IntegerLessThanOrEqual(IntegerFieldOverflow, LessThanOrEqual):
 class In(FieldGetDbPrepValueIterableMixin, BuiltinLookup):
     lookup_name = "in"
 
+    def get_refs(self):
+        refs = super().get_refs()
+        if self.rhs_is_direct_value():
+            for rhs in self.rhs:
+                if get_rhs_refs := getattr(rhs, "get_refs", None):
+                    refs |= get_rhs_refs()
+        return refs
+
     def get_prep_lookup(self):
         from django.db.models.sql.query import Query  # avoid circular import
 
@@ -624,11 +632,15 @@ class IsNull(BuiltinLookup):
             raise ValueError(
                 "The QuerySet value for an isnull lookup must be True or False."
             )
-        if isinstance(self.lhs, Value) and self.lhs.value is None:
-            if self.rhs:
-                raise FullResultSet
+        if isinstance(self.lhs, Value):
+            if self.lhs.value is None or (
+                self.lhs.value == ""
+                and connection.features.interprets_empty_strings_as_nulls
+            ):
+                result_exception = FullResultSet if self.rhs else EmptyResultSet
             else:
-                raise EmptyResultSet
+                result_exception = EmptyResultSet if self.rhs else FullResultSet
+            raise result_exception
         sql, params = self.process_lhs(compiler, connection)
         if self.rhs:
             return "%s IS NULL" % sql, params

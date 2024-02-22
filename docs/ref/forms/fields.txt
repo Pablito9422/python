@@ -283,9 +283,10 @@ fields. We've specified ``auto_id=False`` to simplify the output:
     <div>Sender:<div class="helptext">A valid email address, please.</div><input type="email" name="sender" required></div>
     <div>Cc myself:<input type="checkbox" name="cc_myself"></div>
 
-When a field has help text and :attr:`~django.forms.BoundField.id_for_label`
-returns a value, we associate ``help_text`` with the input using the
-``aria-describedby`` HTML attribute:
+When a field has help text it is associated with its input using the
+``aria-describedby`` HTML attribute. If the widget is rendered in a
+``<fieldset>`` then ``aria-describedby`` is added to this element, otherwise it
+is added to the widget's ``<input>``:
 
 .. code-block:: pycon
 
@@ -324,6 +325,10 @@ inside ``aria-describedby``:
 .. versionchanged:: 5.0
 
     ``aria-describedby`` was added to associate ``help_text`` with its input.
+
+.. versionchanged:: 5.1
+
+    ``aria-describedby`` support was added for ``<fieldset>``.
 
 ``error_messages``
 ------------------
@@ -655,10 +660,6 @@ For each field, we describe the default widget used if you don't specify
     Has the optional arguments ``max_length``, ``min_length``, and
     ``empty_value`` which work just as they do for :class:`CharField`. The
     ``max_length`` argument defaults to 320 (see :rfc:`3696#section-3`).
-
-    .. versionchanged:: 3.2.20
-
-        The default value for ``max_length`` was changed to 320 characters.
 
 ``FileField``
 -------------
@@ -1187,11 +1188,13 @@ Slightly complex built-in ``Field`` classes
         The list of fields that should be used to validate the field's value (in
         the order in which they are provided).
 
+        .. code-block:: pycon
+
             >>> from django.forms import ComboField
             >>> f = ComboField(fields=[CharField(max_length=20), EmailField()])
-            >>> f.clean('test@example.com')
+            >>> f.clean("test@example.com")
             'test@example.com'
-            >>> f.clean('longemailaddress@example.com')
+            >>> f.clean("longemailaddress@example.com")
             Traceback (most recent call last):
             ...
             ValidationError: ['Ensure this value has at most 20 characters (it has 28).']

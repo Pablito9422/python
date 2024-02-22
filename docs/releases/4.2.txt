@@ -477,9 +477,8 @@ Features deprecated in 4.2
 ``index_together`` option is deprecated in favor of ``indexes``
 ---------------------------------------------------------------
 
-The :attr:`Meta.index_together <django.db.models.Options.index_together>`
-option is deprecated in favor of the :attr:`~django.db.models.Options.indexes`
-option.
+The ``Meta.index_together`` option is deprecated in favor of the
+:attr:`~django.db.models.Options.indexes` option.
 
 Migrating existing ``index_together`` should be handled as a migration. For
 example::
@@ -523,7 +522,7 @@ During the deprecation period string literals will be attempted to be JSON
 decoded and a warning will be emitted on success that points at passing
 non-encoded forms instead.
 
-Code that use to pass JSON encoded string literals::
+Code that used to pass JSON encoded string literals::
 
     Document.objects.bulk_create(
         Document(data=Value("null")),

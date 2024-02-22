@@ -35,6 +35,7 @@ from django.test import (
     override_settings,
     skipUnlessDBFeature,
 )
+from django.test.selenium import screenshot_cases
 from django.test.utils import override_script_prefix
 from django.urls import NoReverseMatch, resolve, reverse
 from django.utils import formats, translation
@@ -328,6 +329,66 @@ class AdminViewBasicTest(AdminViewBasicTestCase):
             msg_prefix="Couldn't find an input with the right value in the response",
         )
 
+    def test_add_query_string_persists(self):
+        save_options = [
+            {"_addanother": "1"},  # "Save and add another".
+            {"_continue": "1"},  # "Save and continue editing".
+            {"_saveasnew": "1"},  # "Save as new".
+        ]
+        other_options = [
+            "",
+            "_changelist_filters=is_staff__exact%3D0",
+            f"{IS_POPUP_VAR}=1",
+            f"{TO_FIELD_VAR}=id",
+        ]
+        url = reverse("admin:auth_user_add")
+        for i, save_option in enumerate(save_options):
+            for j, other_option in enumerate(other_options):
+                with self.subTest(save_option=save_option, other_option=other_option):
+                    qsl = "username=newuser"
+                    if other_option:
+                        qsl = f"{qsl}&{other_option}"
+                    response = self.client.post(
+                        f"{url}?{qsl}",
+                        {
+                            "username": f"newuser{i}{j}",
+                            "password1": "newpassword",
+                            "password2": "newpassword",
+                            **save_option,
+                        },
+                    )
+                    parsed_url = urlparse(response.url)
+                    self.assertEqual(parsed_url.query, qsl)
+
+    def test_change_query_string_persists(self):
+        save_options = [
+            {"_addanother": "1"},  # "Save and add another".
+            {"_continue": "1"},  # "Save and continue editing".
+        ]
+        other_options = [
+            "",
+            "_changelist_filters=warm%3D1",
+            f"{IS_POPUP_VAR}=1",
+            f"{TO_FIELD_VAR}=id",
+        ]
+        url = reverse("admin:admin_views_color_change", args=(self.color1.pk,))
+        for save_option in save_options:
+            for other_option in other_options:
+                with self.subTest(save_option=save_option, other_option=other_option):
+                    qsl = "value=blue"
+                    if other_option:
+                        qsl = f"{qsl}&{other_option}"
+                    response = self.client.post(
+                        f"{url}?{qsl}",
+                        {
+                            "value": "gold",
+                            "warm": True,
+                            **save_option,
+                        },
+                    )
+                    parsed_url = urlparse(response.url)
+                    self.assertEqual(parsed_url.query, qsl)
+
     def test_basic_edit_GET(self):
         """
         A smoke test to ensure GET on the change_view works.
@@ -484,6 +545,14 @@ class AdminViewBasicTest(AdminViewBasicTestCase):
             "Middle content",
             "Newest content",
             "Results of sorting on callable are out of order.",
+        )
+
+    def test_change_list_boolean_display_property(self):
+        response = self.client.get(reverse("admin:admin_views_article_changelist"))
+        self.assertContains(
+            response,
+            '<td class="field-model_property_is_from_past">'
+            '<img src="/static/admin/img/icon-yes.svg" alt="True"></td>',
         )
 
     def test_change_list_sorting_property(self):
@@ -804,7 +873,7 @@ class AdminViewBasicTest(AdminViewBasicTestCase):
         response = self.client.get(reverse("admin:admin_views_thing_changelist"))
         self.assertContains(
             response,
-            '<div id="changelist-filter">',
+            '<nav id="changelist-filter" aria-labelledby="changelist-filter-header">',
             msg_prefix="Expected filter not found in changelist view",
         )
         self.assertNotContains(
@@ -857,7 +926,10 @@ class AdminViewBasicTest(AdminViewBasicTestCase):
     def test_relation_spanning_filters(self):
         changelist_url = reverse("admin:admin_views_chapterxtra1_changelist")
         response = self.client.get(changelist_url)
-        self.assertContains(response, '<div id="changelist-filter">')
+        self.assertContains(
+            response,
+            '<nav id="changelist-filter" aria-labelledby="changelist-filter-header">',
+        )
         filters = {
             "chap__id__exact": {
                 "values": [c.id for c in Chapter.objects.all()],
@@ -994,7 +1066,10 @@ class AdminViewBasicTest(AdminViewBasicTestCase):
             "Changelist filter isn't showing options contained inside a model "
             "field 'choices' option named group."
         )
-        self.assertContains(response, '<div id="changelist-filter">')
+        self.assertContains(
+            response,
+            '<nav id="changelist-filter" aria-labelledby="changelist-filter-header">',
+        )
         self.assertContains(
             response,
             '<a href="?surface__exact=x">Horizontal</a>',
@@ -1514,6 +1589,20 @@ class AdminViewBasicTest(AdminViewBasicTestCase):
         self.assertContains(
             response,
             '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
+        )
+
+    def test_header(self):
+        response = self.client.get(reverse("admin:index"))
+        self.assertContains(response, '<header id="header">')
+        self.client.logout()
+        response = self.client.get(reverse("admin:login"))
+        self.assertContains(response, '<header id="header">')
+
+    def test_main_content(self):
+        response = self.client.get(reverse("admin:index"))
+        self.assertContains(
+            response,
+            '<main id="content-start" class="content" tabindex="-1">',
         )
 
 
@@ -3719,33 +3808,27 @@ class AdminViewStringPrimaryKeyTest(TestCase):
             r"""-_.!~*'() ;/?:@&=+$, <>#%" {}|\^[]`"""
         )
         cls.m1 = ModelWithStringPrimaryKey.objects.create(string_pk=cls.pk)
-        content_type_pk = ContentType.objects.get_for_model(
-            ModelWithStringPrimaryKey
-        ).pk
         user_pk = cls.superuser.pk
-        LogEntry.objects.log_action(
+        LogEntry.objects.log_actions(
             user_pk,
-            content_type_pk,
-            cls.pk,
-            cls.pk,
+            [cls.m1],
             2,
             change_message="Changed something",
+            single_object=True,
         )
-        LogEntry.objects.log_action(
+        LogEntry.objects.log_actions(
             user_pk,
-            content_type_pk,
-            cls.pk,
-            cls.pk,
+            [cls.m1],
             1,
             change_message="Added something",
+            single_object=True,
         )
-        LogEntry.objects.log_action(
+        LogEntry.objects.log_actions(
             user_pk,
-            content_type_pk,
-            cls.pk,
-            cls.pk,
+            [cls.m1],
             3,
             change_message="Deleted something",
+            single_object=True,
         )
 
     def setUp(self):
@@ -5651,6 +5734,7 @@ class SeleniumTests(AdminSeleniumTestCase):
             title="A Long Title", published=True, slug="a-long-title"
         )
 
+    @screenshot_cases(["desktop_size", "mobile_size", "rtl", "dark"])
     def test_login_button_centered(self):
         from selenium.webdriver.common.by import By
 
@@ -5662,6 +5746,7 @@ class SeleniumTests(AdminSeleniumTestCase):
         ) - (offset_left + button.get_property("offsetWidth"))
         # Use assertAlmostEqual to avoid pixel rounding errors.
         self.assertAlmostEqual(offset_left, offset_right, delta=3)
+        self.take_screenshot("login")
 
     def test_prepopulated_fields(self):
         """
@@ -5936,6 +6021,7 @@ class SeleniumTests(AdminSeleniumTestCase):
         self.assertEqual(slug1, "this-is-the-main-name-the-best-2012-02-18")
         self.assertEqual(slug2, "option-two-this-is-the-main-name-the-best")
 
+    @screenshot_cases(["desktop_size", "mobile_size", "dark"])
     def test_collapsible_fieldset(self):
         """
         The 'collapse' class in fieldsets definition allows to
@@ -5950,12 +6036,15 @@ class SeleniumTests(AdminSeleniumTestCase):
             self.live_server_url + reverse("admin:admin_views_article_add")
         )
         self.assertFalse(self.selenium.find_element(By.ID, "id_title").is_displayed())
+        self.take_screenshot("collapsed")
         self.selenium.find_elements(By.LINK_TEXT, "Show")[0].click()
         self.assertTrue(self.selenium.find_element(By.ID, "id_title").is_displayed())
         self.assertEqual(
             self.selenium.find_element(By.ID, "fieldsetcollapser0").text, "Hide"
         )
+        self.take_screenshot("expanded")
 
+    @screenshot_cases(["desktop_size", "mobile_size", "rtl", "dark"])
     def test_selectbox_height_collapsible_fieldset(self):
         from selenium.webdriver.common.by import By
 
@@ -5966,7 +6055,7 @@ class SeleniumTests(AdminSeleniumTestCase):
         )
         url = self.live_server_url + reverse("admin7:admin_views_pizza_add")
         self.selenium.get(url)
-        self.selenium.find_elements(By.LINK_TEXT, "Show")[0].click()
+        self.selenium.find_elements(By.ID, "fieldsetcollapser0")[0].click()
         from_filter_box = self.selenium.find_element(By.ID, "id_toppings_filter")
         from_box = self.selenium.find_element(By.ID, "id_toppings_from")
         to_filter_box = self.selenium.find_element(By.ID, "id_toppings_filter_selected")
@@ -5981,7 +6070,9 @@ class SeleniumTests(AdminSeleniumTestCase):
                 + from_box.get_property("offsetHeight")
             ),
         )
+        self.take_screenshot("selectbox-collapsible")
 
+    @screenshot_cases(["desktop_size", "mobile_size", "rtl", "dark"])
     def test_selectbox_height_not_collapsible_fieldset(self):
         from selenium.webdriver.common.by import By
 
@@ -6010,7 +6101,9 @@ class SeleniumTests(AdminSeleniumTestCase):
                 + from_box.get_property("offsetHeight")
             ),
         )
+        self.take_screenshot("selectbox-non-collapsible")
 
+    @screenshot_cases(["desktop_size", "mobile_size", "rtl", "dark"])
     def test_first_field_focus(self):
         """JavaScript-assisted auto-focus on first usable form field."""
         from selenium.webdriver.common.by import By
@@ -6027,6 +6120,7 @@ class SeleniumTests(AdminSeleniumTestCase):
             self.selenium.switch_to.active_element,
             self.selenium.find_element(By.ID, "id_name"),
         )
+        self.take_screenshot("focus-single-widget")
 
         # First form field has a MultiWidget
         with self.wait_page_loaded():
@@ -6037,6 +6131,7 @@ class SeleniumTests(AdminSeleniumTestCase):
             self.selenium.switch_to.active_element,
             self.selenium.find_element(By.ID, "id_start_date_0"),
         )
+        self.take_screenshot("focus-multi-widget")
 
     def test_cancel_delete_confirmation(self):
         "Cancelling the deletion of an object takes the user back one page."
@@ -6408,14 +6503,10 @@ class SeleniumTests(AdminSeleniumTestCase):
         )
         self.selenium.get(self.live_server_url + reverse("admin:admin_views_story_add"))
         field_title = self.selenium.find_element(By.CLASS_NAME, "field-title")
-        current_size = self.selenium.get_window_size()
-        try:
-            self.selenium.set_window_size(1024, 768)
+        with self.small_screen_size():
             self.assertIs(field_title.is_displayed(), False)
-            self.selenium.set_window_size(767, 575)
+        with self.mobile_size():
             self.assertIs(field_title.is_displayed(), False)
-        finally:
-            self.selenium.set_window_size(current_size["width"], current_size["height"])
 
     def test_updating_related_objects_updates_fk_selects_except_autocompletes(self):
         from selenium.webdriver.common.by import By
@@ -6853,6 +6944,11 @@ class ReadonlyTest(AdminFieldExtractionMixin, TestCase):
         )
         field = self.get_admin_readonly_field(response, "plotdetails")
         self.assertEqual(field.contents(), "-")  # default empty value
+
+    @skipUnlessDBFeature("supports_stored_generated_columns")
+    def test_readonly_unsaved_generated_field(self):
+        response = self.client.get(reverse("admin:admin_views_square_add"))
+        self.assertContains(response, '<div class="readonly">-</div>')
 
     @ignore_warnings(category=RemovedInDjango60Warning)
     def test_readonly_field_overrides(self):
@@ -7479,6 +7575,17 @@ class AdminDocsTest(TestCase):
         self.assertContains(response, '<h3 id="built_in-add">add</h3>', html=True)
         self.assertContains(
             response, '<li><a href="#built_in-add">add</a></li>', html=True
+        )
+
+    def test_index_headers(self):
+        response = self.client.get(reverse("django-admindocs-docroot"))
+        self.assertContains(response, "<h1>Documentation</h1>")
+        self.assertContains(response, '<h2><a href="tags/">Tags</a></h2>')
+        self.assertContains(response, '<h2><a href="filters/">Filters</a></h2>')
+        self.assertContains(response, '<h2><a href="models/">Models</a></h2>')
+        self.assertContains(response, '<h2><a href="views/">Views</a></h2>')
+        self.assertContains(
+            response, '<h2><a href="bookmarklets/">Bookmarklets</a></h2>'
         )
 
 

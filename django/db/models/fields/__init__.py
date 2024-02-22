@@ -15,7 +15,12 @@ from django.db import connection, connections, router
 from django.db.models.constants import LOOKUP_SEP
 from django.db.models.query_utils import DeferredAttribute, RegisterLookupMixin
 from django.utils import timezone
-from django.utils.choices import CallableChoiceIterator, normalize_choices
+from django.utils.choices import (
+    BlankChoiceIterator,
+    CallableChoiceIterator,
+    flatten_choices,
+    normalize_choices,
+)
 from django.utils.datastructures import DictWrapper
 from django.utils.dateparse import (
     parse_date,
@@ -165,6 +170,7 @@ class Field(RegisterLookupMixin):
     one_to_many = None
     one_to_one = None
     related_model = None
+    generated = False
 
     descriptor_class = DeferredAttribute
 
@@ -280,6 +286,8 @@ class Field(RegisterLookupMixin):
         Check if field name is valid, i.e. 1) does not end with an
         underscore, 2) does not contain "__" and 3) is not "pk".
         """
+        if self.name is None:
+            return []
         if self.name.endswith("_"):
             return [
                 checks.Error(
@@ -315,9 +323,7 @@ class Field(RegisterLookupMixin):
         if not self.choices:
             return []
 
-        if not is_iterable(self.choices) or isinstance(
-            self.choices, (str, CallableChoiceIterator)
-        ):
+        if not is_iterable(self.choices) or isinstance(self.choices, str):
             return [
                 checks.Error(
                     "'choices' must be a mapping (e.g. a dictionary) or an iterable "
@@ -646,6 +652,8 @@ class Field(RegisterLookupMixin):
             path = path.replace("django.db.models.fields.related", "django.db.models")
         elif path.startswith("django.db.models.fields.files"):
             path = path.replace("django.db.models.fields.files", "django.db.models")
+        elif path.startswith("django.db.models.fields.generated"):
+            path = path.replace("django.db.models.fields.generated", "django.db.models")
         elif path.startswith("django.db.models.fields.json"):
             path = path.replace("django.db.models.fields.json", "django.db.models")
         elif path.startswith("django.db.models.fields.proxy"):
@@ -1050,14 +1058,9 @@ class Field(RegisterLookupMixin):
         as <select> choices for this field.
         """
         if self.choices is not None:
-            choices = list(self.choices)
             if include_blank:
-                blank_defined = any(
-                    choice in ("", None) for choice, _ in self.flatchoices
-                )
-                if not blank_defined:
-                    choices = blank_choice + choices
-            return choices
+                return BlankChoiceIterator(self.choices, blank_choice)
+            return self.choices
         rel_model = self.remote_field.model
         limit_choices_to = limit_choices_to or self.get_limit_choices_to()
         choice_func = operator.attrgetter(
@@ -1079,19 +1082,10 @@ class Field(RegisterLookupMixin):
         """
         return str(self.value_from_object(obj))
 
-    def _get_flatchoices(self):
+    @property
+    def flatchoices(self):
         """Flattened version of choices tuple."""
-        if self.choices is None:
-            return []
-        flat = []
-        for choice, value in self.choices:
-            if isinstance(value, (list, tuple)):
-                flat.extend(value)
-            else:
-                flat.append((choice, value))
-        return flat
-
-    flatchoices = property(_get_flatchoices)
+        return list(flatten_choices(self.choices))
 
     def save_form_data(self, instance, data):
         setattr(instance, self.name, data)
@@ -1594,10 +1588,13 @@ class DateTimeField(DateField):
                 # local time. This won't work during DST change, but we can't
                 # do much about it, so we let the exceptions percolate up the
                 # call stack.
+                try:
+                    name = f"{self.model.__name__}.{self.name}"
+                except AttributeError:
+                    name = "(unbound)"
                 warnings.warn(
-                    "DateTimeField %s.%s received a naive datetime "
-                    "(%s) while time zone support is active."
-                    % (self.model.__name__, self.name, value),
+                    f"DateTimeField {name} received a naive datetime ({value}) while "
+                    "time zone support is active.",
                     RuntimeWarning,
                 )
                 default_timezone = timezone.get_default_timezone()

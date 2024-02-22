@@ -70,6 +70,8 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     supports_ignore_conflicts = False
     max_query_params = 2**16 - 1
     supports_partial_indexes = False
+    supports_stored_generated_columns = False
+    supports_virtual_generated_columns = True
     can_rename_index = True
     supports_slicing_ordering_in_compound = True
     requires_compound_order_by_subquery = True
@@ -78,12 +80,6 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     supports_comparing_boolean_expr = False
     supports_json_field_contains = False
     supports_collation_on_textfield = False
-    test_collations = {
-        "ci": "BINARY_CI",
-        "cs": "BINARY",
-        "non_default": "SWEDISH_CI",
-        "swedish_ci": "SWEDISH_CI",
-    }
     test_now_utc_template = "CURRENT_TIMESTAMP AT TIME ZONE 'UTC'"
 
     django_test_skips = {
@@ -147,6 +143,16 @@ class DatabaseFeatures(BaseDatabaseFeatures):
         }
 
     @cached_property
+    def test_collations(self):
+        return {
+            "ci": "BINARY_CI",
+            "cs": "BINARY",
+            "non_default": "SWEDISH_CI",
+            "swedish_ci": "SWEDISH_CI",
+            "virtual": "SWEDISH_CI" if self.supports_collation_on_charfield else None,
+        }
+
+    @cached_property
     def supports_collation_on_charfield(self):
         with self.connection.cursor() as cursor:
             try:
@@ -159,4 +165,8 @@ class DatabaseFeatures(BaseDatabaseFeatures):
 
     @cached_property
     def supports_primitives_in_json_field(self):
+        return self.connection.oracle_version >= (21,)
+
+    @cached_property
+    def supports_frame_exclusion(self):
         return self.connection.oracle_version >= (21,)

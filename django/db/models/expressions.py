@@ -4,6 +4,7 @@ import functools
 import inspect
 from collections import defaultdict
 from decimal import Decimal
+from enum import Enum
 from types import NoneType
 from uuid import UUID
 
@@ -27,7 +28,7 @@ class SQLiteNumericMixin:
         sql, params = self.as_sql(compiler, connection, **extra_context)
         try:
             if self.output_field.get_internal_type() == "DecimalField":
-                sql = "CAST(%s AS NUMERIC)" % sql
+                sql = "(CAST(%s AS NUMERIC))" % sql
         except FieldError:
             pass
         return sql, params
@@ -256,6 +257,13 @@ class BaseExpression:
             for expr in self.get_source_expressions()
         )
 
+    @cached_property
+    def contains_subquery(self):
+        return any(
+            expr and (getattr(expr, "subquery", False) or expr.contains_subquery)
+            for expr in self.get_source_expressions()
+        )
+
     def resolve_expression(
         self, query=None, allow_joins=True, reuse=None, summarize=False, for_save=False
     ):
@@ -409,6 +417,8 @@ class BaseExpression:
     def get_refs(self):
         refs = set()
         for expr in self.get_source_expressions():
+            if expr is None:
+                continue
             refs |= expr.get_refs()
         return refs
 
@@ -512,6 +522,25 @@ class Expression(BaseExpression, Combinable):
 
 _connector_combinations = [
     # Numeric operations - operands of same type.
+    # PositiveIntegerField should take precedence over IntegerField (except
+    # subtraction).
+    {
+        connector: [
+            (
+                fields.PositiveIntegerField,
+                fields.PositiveIntegerField,
+                fields.PositiveIntegerField,
+            ),
+        ]
+        for connector in (
+            Combinable.ADD,
+            Combinable.MUL,
+            Combinable.DIV,
+            Combinable.MOD,
+            Combinable.POW,
+        )
+    },
+    # Other numeric operands.
     {
         connector: [
             (fields.IntegerField, fields.IntegerField, fields.IntegerField),
@@ -1605,6 +1634,15 @@ class Exists(Subquery):
             sql = "CASE WHEN {} THEN 1 ELSE 0 END".format(sql)
         return sql, params
 
+    def as_sql(self, compiler, *args, **kwargs):
+        try:
+            return super().as_sql(compiler, *args, **kwargs)
+        except EmptyResultSet:
+            features = compiler.connection.features
+            if not features.supports_boolean_expr_in_select_clause:
+                return "1=0", ()
+            return compiler.compile(Value(False))
+
 
 @deconstructible(path="django.db.models.OrderBy")
 class OrderBy(Expression):
@@ -1813,6 +1851,16 @@ class Window(SQLiteNumericMixin, Expression):
         return group_by_cols
 
 
+class WindowFrameExclusion(Enum):
+    CURRENT_ROW = "CURRENT ROW"
+    GROUP = "GROUP"
+    TIES = "TIES"
+    NO_OTHERS = "NO OTHERS"
+
+    def __repr__(self):
+        return f"{self.__class__.__qualname__}.{self._name_}"
+
+
 class WindowFrame(Expression):
     """
     Model the frame clause in window expressions. There are two types of frame
@@ -1822,11 +1870,17 @@ class WindowFrame(Expression):
     row in the frame).
     """
 
-    template = "%(frame_type)s BETWEEN %(start)s AND %(end)s"
+    template = "%(frame_type)s BETWEEN %(start)s AND %(end)s%(exclude)s"
 
-    def __init__(self, start=None, end=None):
+    def __init__(self, start=None, end=None, exclusion=None):
         self.start = Value(start)
         self.end = Value(end)
+        if not isinstance(exclusion, (NoneType, WindowFrameExclusion)):
+            raise TypeError(
+                f"{self.__class__.__qualname__}.exclusion must be a "
+                "WindowFrameExclusion instance."
+            )
+        self.exclusion = exclusion
 
     def set_source_expressions(self, exprs):
         self.start, self.end = exprs
@@ -1834,17 +1888,27 @@ class WindowFrame(Expression):
     def get_source_expressions(self):
         return [self.start, self.end]
 
+    def get_exclusion(self):
+        if self.exclusion is None:
+            return ""
+        return f" EXCLUDE {self.exclusion.value}"
+
     def as_sql(self, compiler, connection):
         connection.ops.check_expression_support(self)
         start, end = self.window_frame_start_end(
             connection, self.start.value, self.end.value
         )
+        if self.exclusion and not connection.features.supports_frame_exclusion:
+            raise NotSupportedError(
+                "This backend does not support window frame exclusions."
+            )
         return (
             self.template
             % {
                 "frame_type": self.frame_type,
                 "start": start,
                 "end": end,
+                "exclude": self.get_exclusion(),
             },
             [],
         )
@@ -1860,6 +1924,8 @@ class WindowFrame(Expression):
             start = "%d %s" % (abs(self.start.value), connection.ops.PRECEDING)
         elif self.start.value is not None and self.start.value == 0:
             start = connection.ops.CURRENT_ROW
+        elif self.start.value is not None and self.start.value > 0:
+            start = "%d %s" % (self.start.value, connection.ops.FOLLOWING)
         else:
             start = connection.ops.UNBOUNDED_PRECEDING
 
@@ -1867,12 +1933,15 @@ class WindowFrame(Expression):
             end = "%d %s" % (self.end.value, connection.ops.FOLLOWING)
         elif self.end.value is not None and self.end.value == 0:
             end = connection.ops.CURRENT_ROW
+        elif self.end.value is not None and self.end.value < 0:
+            end = "%d %s" % (abs(self.end.value), connection.ops.PRECEDING)
         else:
             end = connection.ops.UNBOUNDED_FOLLOWING
         return self.template % {
             "frame_type": self.frame_type,
             "start": start,
             "end": end,
+            "exclude": self.get_exclusion(),
         }
 
     def window_frame_start_end(self, connection, start, end):
