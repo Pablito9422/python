@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.test import override_settings
 from django.urls import reverse
 
+
 @override_settings(ROOT_URLCONF="admin_views.urls")
 class SeleniumTests(AdminSeleniumTestCase):
     available_apps = ["admin_views"] + AdminSeleniumTestCase.available_apps
@@ -75,10 +76,16 @@ class SeleniumTests(AdminSeleniumTestCase):
             with self.subTest(link_id):
                 link = self.selenium.find_element(By.XPATH, f'//*[@id="{link_id}"]')
                 self.assertIsNone(link.get_attribute("aria-disabled"))
-        
+
     def test_filter_horizontal_without_duplication(self):
-        """Test that the filter_horizontal widget doesn't duplicate entries in the Chosen column after instance is added from another field using the plus JS action."""
-        # Use Transition and TransitionState models from tests.admin_views.models with the TransitionAdmin from tests.admin_views.admin
+        """
+        Test that the filter_horizontal widget doesn't duplicate entries 
+        in the Chosen column after instance is added from another field 
+        using the plus JS action.
+        """
+        # Use Transition and TransitionState models from
+        # tests.admin_views.models with the TransitionAdmin
+        # from tests.admin_views.admin
         from selenium.webdriver.common.by import By
 
         def _get_HTML_inside_element_by_id(id_):
@@ -90,7 +97,7 @@ class SeleniumTests(AdminSeleniumTestCase):
 
         # Add a TransitionState from the plus button on the Target field
         self.selenium.find_element(By.ID, "add_id_target").click()
-        
+
         # Switch to the popup window
         self.wait_for_and_switch_to_popup()
 
@@ -122,4 +129,4 @@ class SeleniumTests(AdminSeleniumTestCase):
         )
 
         # Check that the state is not in the Chosen box (hence, box is empty)
-        self.assertHTMLEqual(_get_HTML_inside_element_by_id("id_source_to"),"")
+        self.assertHTMLEqual(_get_HTML_inside_element_by_id("id_source_to"), "")

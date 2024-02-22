@@ -1178,8 +1178,10 @@ class CountryAdmin(admin.ModelAdmin):
 class TravelerAdmin(admin.ModelAdmin):
     autocomplete_fields = ["living_country"]
 
+
 class TransitionAdmin(admin.ModelAdmin):
     filter_horizontal = ['source']
+
 
 class SquareAdmin(admin.ModelAdmin):
     readonly_fields = ("area",)
