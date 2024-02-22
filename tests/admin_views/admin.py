@@ -127,6 +127,8 @@ from .models import (
     Telegram,
     Thing,
     Topping,
+    Transition,
+    TransitionState,
     Traveler,
     UnchangeableObject,
     UndeletableObject,
@@ -1174,6 +1176,8 @@ class CountryAdmin(admin.ModelAdmin):
 class TravelerAdmin(admin.ModelAdmin):
     autocomplete_fields = ["living_country"]
 
+class TransitionAdmin(admin.ModelAdmin):
+    filter_horizontal = ['source']
 
 site = admin.AdminSite(name="admin")
 site.site_url = "/my-site-url/"
@@ -1298,6 +1302,8 @@ site.register(UserProxy)
 site.register(Box)
 site.register(Country, CountryAdmin)
 site.register(Traveler, TravelerAdmin)
+site.register(TransitionState)
+site.register(Transition, TransitionAdmin)
 
 # Register core models we need in our tests
 site.register(User, UserAdmin)

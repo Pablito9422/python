@@ -1134,3 +1134,13 @@ class Traveler(models.Model):
         related_name="favorite_country_to_vacation_set",
         limit_choices_to={"continent": Country.ASIA},
     )
+
+class TransitionState(models.Model):
+    label = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.label
+
+class Transition(models.Model):
+    source = models.ManyToManyField(TransitionState, related_name='transition_source')
+    target = models.ForeignKey(TransitionState, on_delete=models.CASCADE, related_name='transition_target')
