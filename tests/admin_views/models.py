@@ -1152,7 +1152,7 @@ class Transitionstate(models.Model):
 class Transition(models.Model):
     source = models.ManyToManyField(Transitionstate, related_name="transition_source")
     target = models.ForeignKey(
-        Transitionstate, on_delete=models.CASCADE, related_name='transition_target'
+        Transitionstate, on_delete=models.CASCADE, related_name="transition_target"
     )
 
 
