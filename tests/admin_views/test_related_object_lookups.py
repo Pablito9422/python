@@ -79,8 +79,8 @@ class SeleniumTests(AdminSeleniumTestCase):
 
     def test_filter_horizontal_without_duplication(self):
         """
-        Test that the filter_horizontal widget doesn't duplicate entries 
-        in the Chosen column after instance is added from another field 
+        Test that the filter_horizontal widget doesn't duplicate entries
+        in the Chosen column after instance is added from another field
         using the plus JS action.
         """
         # Use Transition and TransitionState models from
@@ -117,7 +117,7 @@ class SeleniumTests(AdminSeleniumTestCase):
             f"""
             <option value="" selected="">---------</option>
             <option value="1" selected>{state_name}</option>
-            """
+            """,
         )
 
         # Check that the state is in the Available Source box
@@ -125,7 +125,7 @@ class SeleniumTests(AdminSeleniumTestCase):
             _get_HTML_inside_element_by_id("id_source_from"),
             f"""
             <option value="1">{state_name}</option>
-            """
+            """,
         )
 
         # Check that the state is not in the Chosen box (hence, box is empty)

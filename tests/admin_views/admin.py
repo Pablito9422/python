@@ -1180,7 +1180,7 @@ class TravelerAdmin(admin.ModelAdmin):
 
 
 class TransitionAdmin(admin.ModelAdmin):
-    filter_horizontal = ['source']
+    filter_horizontal = ["source"]
 
 
 class SquareAdmin(admin.ModelAdmin):
