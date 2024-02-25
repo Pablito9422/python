@@ -53,6 +53,7 @@ class RegexValidator:
         invalid_input = regex_matches if self.inverse_match else not regex_matches
         if invalid_input:
             raise ValidationError(self.message, code=self.code, params={"value": value})
+        
 
     def __eq__(self, other):
         return (
@@ -70,17 +71,18 @@ class DomainNameValidator(RegexValidator):
     message = _('Enter a valid domain name value.')
     ul = "\u00a1-\uffff"  # Unicode letters range (must not be a raw string).
     # Max length for domain name labels is 63 characters per RFC 1034 sec. 3.1
-    domain_re = r"(?:\.(?!-)[a-z" + ul + r"0-9-]{1,63}(?<!-))*"
+    domain_re = r"(?:\.(?!-)[a-zA-Z0-9-]{1,63}(?<!-))*"
     # Top-level domain
     tld_re = (
         r"\."  # dot
         r"(?!-)"  # can't start with a dash
-        r"(?:[a-z" + ul + "-]{2,63}"  # domain label
+        r"(?:[a-zA-Z0-9-]{2,63}"  # domain label
         r"|xn--[a-z0-9]{1,59})"  # or punycode label
         r"(?<!-)"  # can't end with a dash
         r"\.?"  # may have a trailing dot
     )
     accept_idna = True
+    max_length = 255
 
     regex = _lazy_re_compile(
         domain_re + tld_re,
@@ -91,7 +93,15 @@ class DomainNameValidator(RegexValidator):
         super().__init__(**kwargs)
         self.accept_idna = kwargs.pop('accept_idna', True)
 
+    def __call__(self, value):
+        if not isinstance(value, str) or len(value) > self.max_length:
+            raise ValidationError(self.message, code=self.code, params={"value": value})
 
+        if self.accept_idna:
+            value = punycode(value)
+        super().__call__(value)
+
+                
 validate_domain_name = DomainNameValidator()
 
 
