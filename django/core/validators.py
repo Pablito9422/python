@@ -145,15 +145,8 @@ class URLValidator(RegexValidator):
         r"[a-z" + ul + r"0-9](?:[a-z" + ul + r"0-9-]{0,61}[a-z" + ul + r"0-9])?"
     )
     # Max length for domain name labels is 63 characters per RFC 1034 sec. 3.1
-    domain_re = r"(?:\.(?!-)[a-z" + ul + r"0-9-]{1,63}(?<!-))*"
-    tld_re = (
-        r"\."  # dot
-        r"(?!-)"  # can't start with a dash
-        r"(?:[a-z" + ul + "-]{2,63}"  # domain label
-        r"|xn--[a-z0-9]{1,59})"  # or punycode label
-        r"(?<!-)"  # can't end with a dash
-        r"\.?"  # may have a trailing dot
-    )
+    domain_re = DomainNameValidator.domain_re
+    tld_re = DomainNameValidator.tld_re
     host_re = "(" + hostname_re + domain_re + tld_re + "|localhost)"
 
     regex = _lazy_re_compile(
