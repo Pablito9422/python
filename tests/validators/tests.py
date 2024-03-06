@@ -621,7 +621,6 @@ TEST_DATA = [
     (ProhibitNullCharactersValidator(), "something", None),
     (ProhibitNullCharactersValidator(), None, None),
     (validate_domain_name, '000000.org', None),
-    (validate_domain_name, 'localhost', None),
     (validate_domain_name, 'python.org', None),
     (validate_domain_name, 'python.co.uk', None),
     (validate_domain_name, 'python.tk', None),
@@ -632,13 +631,17 @@ TEST_DATA = [
     (validate_domain_name, 'python.xyz', None),
     (validate_domain_name, 'djangoproject.com', None),
     (validate_domain_name, 'DJANGOPROJECT.COM', None),
-    (validate_domain_name, 'localhost', None),
     (validate_domain_name, 'spam.eggs', None),
     (validate_domain_name, 'python-python.com', None),
     (validate_domain_name, 'python..org', ValidationError),
     (validate_domain_name, 'python-.org', ValidationError),
     (validate_domain_name, 'python.name.uk', None),
     (validate_domain_name, 'python.tips', None),
+    (validate_domain_name, 'http://例子.测试', None),
+    (validate_domain_name, 'http://dashinpunytld.xn---c', None),
+    (DomainNameValidator(accept_idna=False), 'domain.with.idn.tld.उदाहरण.परीक्ष', ValidationError),
+    (DomainNameValidator(accept_idna=False), 'ıçğü.com', ValidationError),
+    (validate_domain_name, 'too-long-name.'*20+'com', ValidationError)
 ]
 
 # Add valid and invalid URL tests.
