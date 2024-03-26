@@ -19,7 +19,7 @@ class SelectMultipleTest(WidgetTest):
             "beatles",
             ["J"],
             html=(
-                """<select data-context="available-source"
+                """<select
                 multiple name="beatles">
             <option value="J" selected>John</option>
             <option value="P">Paul</option>
@@ -35,7 +35,7 @@ class SelectMultipleTest(WidgetTest):
             "beatles",
             ["J", "P"],
             html=(
-                """<select data-context="available-source"
+                """<select
                 multiple name="beatles">
             <option value="J" selected>John</option>
             <option value="P" selected>Paul</option>
@@ -55,7 +55,7 @@ class SelectMultipleTest(WidgetTest):
             "beatles",
             None,
             html=(
-                """<select data-context="available-source"
+                """<select
                 multiple name="beatles">
             <option value="">Unknown</option>
             <option value="J">John</option>
@@ -76,7 +76,7 @@ class SelectMultipleTest(WidgetTest):
             "beatles",
             ["John"],
             html=(
-                """<select data-context="available-source"
+                """<select
                 multiple name="beatles">
             <option value="J">John</option>
             <option value="P">Paul</option>
@@ -95,7 +95,7 @@ class SelectMultipleTest(WidgetTest):
             "choices",
             ["0"],
             html=(
-                """<select data-context="available-source"
+                """<select
                 multiple name="choices">
             <option value="0" selected>0</option>
             <option value="1">1</option>
@@ -116,7 +116,7 @@ class SelectMultipleTest(WidgetTest):
             "beatles",
             ["J", "G", "foo"],
             html=(
-                """<select data-context="available-source"
+                """<select
                 multiple name="beatles">
             <option value="J" selected>John</option>
             <option value="P">Paul</option>
@@ -134,7 +134,7 @@ class SelectMultipleTest(WidgetTest):
             "nums",
             [2],
             html=(
-                """<select data-context="available-source"
+                """<select
                 multiple name="nums">
             <option value="1">1</option>
             <option value="2" selected>2</option>
@@ -148,7 +148,7 @@ class SelectMultipleTest(WidgetTest):
             "nums",
             ["2"],
             html=(
-                """<select data-context="available-source"
+                """<select
                 multiple name="nums">
             <option value="1">1</option>
             <option value="2" selected>2</option>
@@ -162,7 +162,7 @@ class SelectMultipleTest(WidgetTest):
             "nums",
             [2],
             html=(
-                """<select data-context="available-source"
+                """<select
                 multiple name="nums">
             <option value="1">1</option>
             <option value="2" selected>2</option>
@@ -183,7 +183,7 @@ class SelectMultipleTest(WidgetTest):
             "nestchoice",
             ["outer1", "inner2"],
             html=(
-                """<select data-context="available-source"
+                """<select
                 multiple name="nestchoice">
             <option value="outer1" selected>Outer 1</option>
             <optgroup label="Group &quot;1&quot;">
@@ -212,7 +212,7 @@ class SelectMultipleTest(WidgetTest):
         self.assertIs(self.widget.use_fieldset, False)
         self.assertHTMLEqual(
             '<div><label for="id_field">Field:</label>'
-            '<select data-context="available-source" '
+            '<select '
             'multiple name="field" id="id_field">'
             '<option value="J">John</option>  <option value="P">Paul</option>'
             '<option value="G">George</option><option value="R">Ringo'

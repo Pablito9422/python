@@ -381,7 +381,6 @@ class FilteredSelectMultipleWidgetTest(SimpleTestCase):
         self.assertHTMLEqual(
             w.render("test", "test"),
             '<select multiple name="test" class="selectfilter" '
-            'data-context="available-source" '
             'data-field-name="test\\" data-is-stacked="0">\n</select>',
         )
 
@@ -391,7 +390,7 @@ class FilteredSelectMultipleWidgetTest(SimpleTestCase):
         self.assertHTMLEqual(
             w.render("test", "test"),
             '<select multiple name="test" class="selectfilterstacked" '
-            'data-context="available-source" data-field-name="test\\" '
+            'data-field-name="test\\" '
             'data-is-stacked="1">\n</select>',
         )
 

@@ -1044,8 +1044,7 @@ class FormsTestCase(SimpleTestCase):
         f = SongForm(auto_id=False)
         self.assertHTMLEqual(
             str(f["composers"]),
-            """<select data-context="available-source"
-            multiple name="composers" required>
+            """<select multiple name="composers" required>
 </select>""",
         )
 
@@ -1058,8 +1057,7 @@ class FormsTestCase(SimpleTestCase):
         f = SongForm(auto_id=False)
         self.assertHTMLEqual(
             str(f["composers"]),
-            """<select data-context="available-source"
-            multiple name="composers" required>
+            """<select multiple name="composers" required>
 <option value="J">John Lennon</option>
 <option value="P">Paul McCartney</option>
 </select>""",
@@ -1070,8 +1068,7 @@ class FormsTestCase(SimpleTestCase):
         )
         self.assertHTMLEqual(
             str(f["composers"]),
-            """<select data-context="available-source"
-            multiple name="composers" required>
+            """<select multiple name="composers" required>
 <option value="J">John Lennon</option>
 <option value="P" selected>Paul McCartney</option>
 </select>""",
@@ -1082,7 +1079,7 @@ class FormsTestCase(SimpleTestCase):
             '<tr><th><label for="id_name">Name:</label></th>'
             '<td><input type="text" name="name" required id="id_name"></td>'
             '</tr><tr><th><label for="id_composers">Composers:</label></th>'
-            '<td><select data-context="available-source" '
+            '<td><select '
             'name="composers" required id="id_composers" multiple>'
             '<option value="J">John Lennon</option>'
             '<option value="P">Paul McCartney</option>'
@@ -1093,7 +1090,7 @@ class FormsTestCase(SimpleTestCase):
             '<li><label for="id_name">Name:</label>'
             '<input type="text" name="name" required id="id_name"></li>'
             '<li><label for="id_composers">Composers:</label>'
-            '<select data-context="available-source" '
+            '<select '
             'name="composers" required id="id_composers" multiple>'
             '<option value="J">John Lennon</option>'
             '<option value="P">Paul McCartney</option>'
@@ -1104,7 +1101,7 @@ class FormsTestCase(SimpleTestCase):
             '<p><label for="id_name">Name:</label>'
             '<input type="text" name="name" required id="id_name"></p>'
             '<p><label for="id_composers">Composers:</label>'
-            '<select data-context="available-source" '
+            '<select '
             'name="composers" required id="id_composers" multiple>'
             '<option value="J">John Lennon</option>'
             '<option value="P">Paul McCartney</option>'
@@ -1114,7 +1111,7 @@ class FormsTestCase(SimpleTestCase):
             f.render(f.template_name_div),
             '<div><label for="id_name">Name:</label><input type="text" name="name" '
             'required id="id_name"></div><div><label for="id_composers">Composers:'
-            '</label><select data-context="available-source" '
+            '</label><select '
             'name="composers" required id="id_composers" multiple>'
             '<option value="J">John Lennon</option><option value="P">Paul McCartney'
             "</option></select></div>",
@@ -2585,7 +2582,7 @@ Password: <input type="password" name="password" aria-invalid="true" required></
             <li>Username: <input type="text" name="username" value="django"
                 maxlength="10" required></li>
             <li>Password: <input type="password" name="password" required></li>
-            <li>Options: <select data-context="available-source"
+            <li>Options: <select
             multiple name="options" required>
             <option value="f" selected>foo</option>
             <option value="b" selected>bar</option>
@@ -2607,7 +2604,7 @@ Username: <input type="text" name="username" maxlength="10" aria-invalid="true"
 required></li><li><ul class="errorlist"><li>This field is required.</li></ul>
 Password: <input type="password" name="password" aria-invalid="true"
 required></li><li><ul class="errorlist"><li>This field is required.</li></ul>
-Options: <select data-context="available-source"
+Options: <select
 multiple name="options" aria-invalid="true" required>
 <option value="f">foo</option>
 <option value="b">bar</option>
@@ -2624,7 +2621,7 @@ Username: <input type="text" name="username" maxlength="10" aria-invalid="true"
 required></li><li><ul class="errorlist"><li>This field is required.</li></ul>
 Password: <input type="password" name="password" aria-invalid="true" required></li>
 <li><ul class="errorlist"><li>This field is required.</li></ul>
-Options: <select data-context="available-source"
+Options: <select
 multiple name="options" aria-invalid="true" required>
 <option value="f">foo</option>
 <option value="b">bar</option>
@@ -2643,7 +2640,7 @@ multiple name="options" aria-invalid="true" required>
                 required></li>
             <li><ul class="errorlist"><li>This field is required.</li></ul>
             Password: <input type="password" name="password" aria-invalid="true"
-            required></li><li>Options: <select data-context="available-source"
+            required></li><li>Options: <select
             multiple name="options" required>
             <option value="f" selected>foo</option>
             <option value="b" selected>bar</option>
@@ -2680,7 +2677,7 @@ multiple name="options" aria-invalid="true" required>
             <li>Username: <input type="text" name="username" value="django"
                 maxlength="10" required></li>
             <li>Password: <input type="password" name="password" required></li>
-            <li>Options: <select data-context="available-source"
+            <li>Options: <select
             multiple name="options" required>
             <option value="f">foo</option>
             <option value="b" selected>bar</option>
@@ -2698,7 +2695,7 @@ multiple name="options" aria-invalid="true" required>
             <li>Username: <input type="text" name="username" value="stephane"
                 maxlength="10" required></li>
             <li>Password: <input type="password" name="password" required></li>
-            <li>Options: <select data-context="available-source"
+            <li>Options: <select
             multiple name="options" required>
             <option value="f" selected>foo</option>
             <option value="b" selected>bar</option>

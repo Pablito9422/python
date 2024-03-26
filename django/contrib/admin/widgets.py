@@ -271,6 +271,7 @@ class RelatedFieldWidgetWrapper(forms.Widget):
         self.can_add_related = can_add_related
         # XXX: The UX does not support multiple selected values.
         multiple = getattr(widget, "allow_multiple_selected", False)
+        self.attrs["data-context"] = "available-source"
         self.can_change_related = not multiple and can_change_related
         # XXX: The deletion UX can be confusing when dealing with cascading deletion.
         cascade = getattr(rel, "on_delete", None) is CASCADE
@@ -529,6 +530,7 @@ class AutocompleteMixin:
                 + "admin-autocomplete",
             }
         )
+        attrs.pop("data-context", None)
         return attrs
 
     def optgroups(self, name, value, attr=None):
