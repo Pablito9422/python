@@ -444,7 +444,7 @@ Let's take a look inside a couple of those files:
    INSTALLED_APPS = [
        "polls",
        # adding tests allows us to define models inside the tests package
-       # "tests",
+       "tests",
    ]
 
    DATABASES = {
@@ -492,7 +492,6 @@ You can then invoke the test runner using
 
 If you need a more complicated setup, you can create a custom ``runtests.py``
 do manually initialize the test runner.
-
 
 .. code-block:: python
     :caption: ``runtests.py``

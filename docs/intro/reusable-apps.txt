@@ -316,17 +316,18 @@ working. We'll now fix this by installing our new ``django-polls`` package.
 
 Testing your app
 ================
+
 Since we moved the ``polls`` directory out of the project,
 we don't have the project's ``settings.py`` and ``urls.py`` anymore.
 We need another way to configure our app in order to test it.
 
-#. First we create a ``tests`` directory and move the tests over from the
+#. First create a ``tests`` directory and move the tests over from the
    ``polls`` directory. Because the tests now reside in a different module
-   we will have to replace the relative import ``from .models import Poll``
-   with ``from polls.models import Poll``.
+    the relative import ``from .models import Poll`` has to be changed to
+   ``from polls.models import Poll``.
 
-#. Now we create a ``settings.py`` inside the ``tests`` folder which will contain
-   only the settings required to test our application.
+#. Now create a ``settings.py`` inside the ``tests`` folder which will
+   contain only the settings required to test the application.
 
    .. code-block:: python
        :caption: ``tests/settings.py``
@@ -357,8 +358,8 @@ We need another way to configure our app in order to test it.
 
        ROOT_URLCONF = "tests.urls"
 
-#. Because we test our views, we need a :setting:`ROOT_URLCONF` that includes
-   our app. We create an appropriate ``urls.py`` inside the ``tests``
+#. Because the test involves views, a :setting:`ROOT_URLCONF` that includes
+   our app is needed. Create an appropriate ``urls.py`` inside the ``tests``
    directory.
 
    .. code-block:: python
@@ -370,7 +371,7 @@ We need another way to configure our app in order to test it.
            path("polls/", include("polls.urls")),
        ]
 
-#. Now we can run the tests.
+#. Now run the tests.
 
    .. code-block:: shell
 
@@ -378,7 +379,6 @@ We need another way to configure our app in order to test it.
 
 For more information on testing reusable applications see :ref:`Advanced testing topics
 <testing-reusable-applications>`.
-
 
 Publishing your app
 ===================
