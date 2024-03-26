@@ -6,6 +6,7 @@ import pathlib
 
 class CodeLocator(ast.NodeVisitor):
     def __init__(self):
+        super().__init__()
         self.current_path = []
         self.node_line_numbers = {}
         self.import_locations = {}
@@ -20,7 +21,7 @@ class CodeLocator(ast.NodeVisitor):
     def visit_node(self, node):
         self.current_path.append(node.name)
         self.node_line_numbers[".".join(self.current_path)] = node.lineno
-        ast.NodeVisitor.generic_visit(self, node)
+        self.generic_visit(node)
         self.current_path.pop()
 
     def visit_FunctionDef(self, node):
