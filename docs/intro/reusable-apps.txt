@@ -323,7 +323,7 @@ We need another way to configure our app in order to test it.
 
 #. First create a ``tests`` directory and move the tests over from the
    ``polls`` directory. Because the tests now reside in a different module
-    the relative import ``from .models import Poll`` has to be changed to
+   the relative import ``from .models import Poll`` has to be changed to
    ``from polls.models import Poll``.
 
 #. Now create a ``settings.py`` inside the ``tests`` folder which will
