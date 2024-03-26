@@ -1079,8 +1079,7 @@ class FormsTestCase(SimpleTestCase):
             '<tr><th><label for="id_name">Name:</label></th>'
             '<td><input type="text" name="name" required id="id_name"></td>'
             '</tr><tr><th><label for="id_composers">Composers:</label></th>'
-            '<td><select '
-            'name="composers" required id="id_composers" multiple>'
+            '<td><select name="composers" required id="id_composers" multiple>'
             '<option value="J">John Lennon</option>'
             '<option value="P">Paul McCartney</option>'
             "</select></td></tr>",
@@ -1090,8 +1089,7 @@ class FormsTestCase(SimpleTestCase):
             '<li><label for="id_name">Name:</label>'
             '<input type="text" name="name" required id="id_name"></li>'
             '<li><label for="id_composers">Composers:</label>'
-            '<select '
-            'name="composers" required id="id_composers" multiple>'
+            '<select name="composers" required id="id_composers" multiple>'
             '<option value="J">John Lennon</option>'
             '<option value="P">Paul McCartney</option>'
             "</select></li>",
@@ -1101,8 +1099,7 @@ class FormsTestCase(SimpleTestCase):
             '<p><label for="id_name">Name:</label>'
             '<input type="text" name="name" required id="id_name"></p>'
             '<p><label for="id_composers">Composers:</label>'
-            '<select '
-            'name="composers" required id="id_composers" multiple>'
+            '<select name="composers" required id="id_composers" multiple>'
             '<option value="J">John Lennon</option>'
             '<option value="P">Paul McCartney</option>'
             "</select></p>",
@@ -1111,8 +1108,7 @@ class FormsTestCase(SimpleTestCase):
             f.render(f.template_name_div),
             '<div><label for="id_name">Name:</label><input type="text" name="name" '
             'required id="id_name"></div><div><label for="id_composers">Composers:'
-            '</label><select '
-            'name="composers" required id="id_composers" multiple>'
+            '</label><select name="composers" required id="id_composers" multiple>'
             '<option value="J">John Lennon</option><option value="P">Paul McCartney'
             "</option></select></div>",
         )
@@ -2582,8 +2578,7 @@ Password: <input type="password" name="password" aria-invalid="true" required></
             <li>Username: <input type="text" name="username" value="django"
                 maxlength="10" required></li>
             <li>Password: <input type="password" name="password" required></li>
-            <li>Options: <select
-            multiple name="options" required>
+            <li>Options: <select multiple name="options" required>
             <option value="f" selected>foo</option>
             <option value="b" selected>bar</option>
             <option value="w">whiz</option>
@@ -2604,8 +2599,7 @@ Username: <input type="text" name="username" maxlength="10" aria-invalid="true"
 required></li><li><ul class="errorlist"><li>This field is required.</li></ul>
 Password: <input type="password" name="password" aria-invalid="true"
 required></li><li><ul class="errorlist"><li>This field is required.</li></ul>
-Options: <select
-multiple name="options" aria-invalid="true" required>
+Options: <select multiple name="options" aria-invalid="true" required>
 <option value="f">foo</option>
 <option value="b">bar</option>
 <option value="w">whiz</option>
@@ -2621,8 +2615,7 @@ Username: <input type="text" name="username" maxlength="10" aria-invalid="true"
 required></li><li><ul class="errorlist"><li>This field is required.</li></ul>
 Password: <input type="password" name="password" aria-invalid="true" required></li>
 <li><ul class="errorlist"><li>This field is required.</li></ul>
-Options: <select
-multiple name="options" aria-invalid="true" required>
+Options: <select multiple name="options" aria-invalid="true" required>
 <option value="f">foo</option>
 <option value="b">bar</option>
 <option value="w">whiz</option>
@@ -2640,8 +2633,7 @@ multiple name="options" aria-invalid="true" required>
                 required></li>
             <li><ul class="errorlist"><li>This field is required.</li></ul>
             Password: <input type="password" name="password" aria-invalid="true"
-            required></li><li>Options: <select
-            multiple name="options" required>
+            required></li><li>Options: <select multiple name="options" required>
             <option value="f" selected>foo</option>
             <option value="b" selected>bar</option>
             <option value="w">whiz</option>
@@ -2677,8 +2669,7 @@ multiple name="options" aria-invalid="true" required>
             <li>Username: <input type="text" name="username" value="django"
                 maxlength="10" required></li>
             <li>Password: <input type="password" name="password" required></li>
-            <li>Options: <select
-            multiple name="options" required>
+            <li>Options: <select multiple name="options" required>
             <option value="f">foo</option>
             <option value="b" selected>bar</option>
             <option value="w" selected>whiz</option>
@@ -2695,8 +2686,7 @@ multiple name="options" aria-invalid="true" required>
             <li>Username: <input type="text" name="username" value="stephane"
                 maxlength="10" required></li>
             <li>Password: <input type="password" name="password" required></li>
-            <li>Options: <select
-            multiple name="options" required>
+            <li>Options: <select multiple name="options" required>
             <option value="f" selected>foo</option>
             <option value="b" selected>bar</option>
             <option value="w">whiz</option>

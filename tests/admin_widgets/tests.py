@@ -390,8 +390,7 @@ class FilteredSelectMultipleWidgetTest(SimpleTestCase):
         self.assertHTMLEqual(
             w.render("test", "test"),
             '<select multiple name="test" class="selectfilterstacked" '
-            'data-field-name="test\\" '
-            'data-is-stacked="1">\n</select>',
+            'data-field-name="test\\" data-is-stacked="1">\n</select>',
         )
 
 

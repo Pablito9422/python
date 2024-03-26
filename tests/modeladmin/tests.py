@@ -742,7 +742,7 @@ class ModelAdminTests(TestCase):
         )
         self.assertEqual(
             cmafa.base_fields["main_band"].widget.attrs,
-            {"class": "radiolist inline", "data-context": 'available-source'}
+            {"class": "radiolist inline", "data-context": "available-source"},
         )
         self.assertEqual(
             list(cmafa.base_fields["main_band"].widget.choices),
@@ -754,7 +754,7 @@ class ModelAdminTests(TestCase):
         )
         self.assertEqual(
             cmafa.base_fields["opening_band"].widget.attrs,
-            {"class": "radiolist", "data-context": 'available-source'}
+            {"class": "radiolist", "data-context": "available-source"},
         )
         self.assertEqual(
             list(cmafa.base_fields["opening_band"].widget.choices),
