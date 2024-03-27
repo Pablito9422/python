@@ -119,7 +119,10 @@
 
     function dismissAddRelatedObjectPopup(win, newId, newRepr) {
         const name = removePopupIndex(win.name);
-        const elem = document.getElementById(name + '_from');
+        let elem = document.getElementById(name);
+        if (!elem) {
+            elem = document.getElementById(name + '_from');
+        }
         if (elem) {
             const elemName = elem.nodeName.toUpperCase();
             if (elemName === 'SELECT') {

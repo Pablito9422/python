@@ -1165,4 +1165,4 @@ class Fan(models.Model):
     players = models.ManyToManyField(Player, related_name="fans")
     favorite = models.ForeignKey(
         Player, on_delete=models.CASCADE, related_name="favorite_fan"
-        )
+    )
