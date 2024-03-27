@@ -1152,3 +1152,17 @@ class Square(models.Model):
 
     class Meta:
         required_db_features = {"supports_stored_generated_columns"}
+
+
+class Player(models.Model):
+    name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.name
+
+
+class Fan(models.Model):
+    players = models.ManyToManyField(Player, related_name="fans")
+    favorite = models.ForeignKey(
+        Player, on_delete=models.CASCADE, related_name="favorite_fan"
+        )

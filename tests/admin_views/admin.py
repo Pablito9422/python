@@ -58,6 +58,7 @@ from .models import (
     ExplicitlyProvidedPK,
     ExternalSubscriber,
     Fabric,
+    Fan,
     FancyDoodad,
     FieldOverridePost,
     FilteredManager,
@@ -88,6 +89,7 @@ from .models import (
     Persona,
     Picture,
     Pizza,
+    Player,
     Plot,
     PlotDetails,
     PlotProxy,
@@ -1181,6 +1183,10 @@ class SquareAdmin(admin.ModelAdmin):
     readonly_fields = ("area",)
 
 
+class FanAdmin(admin.ModelAdmin):
+    filter_horizontal = ["players"]
+
+
 site = admin.AdminSite(name="admin")
 site.site_url = "/my-site-url/"
 site.register(Article, ArticleAdmin)
@@ -1305,6 +1311,8 @@ site.register(Box)
 site.register(Country, CountryAdmin)
 site.register(Traveler, TravelerAdmin)
 site.register(Square, SquareAdmin)
+site.register(Player)
+site.register(Fan, FanAdmin)
 
 # Register core models we need in our tests
 site.register(User, UserAdmin)
