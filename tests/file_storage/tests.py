@@ -71,16 +71,10 @@ class FileStorageTests(SimpleTestCase):
 
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.temp_dir)
         self.storage = self.storage_class(
             location=self.temp_dir, base_url="/test_media_url/"
         )
-        # Set up a second temporary directory which is ensured to have a mixed
-        # case name.
-        self.temp_dir2 = tempfile.mkdtemp(suffix="aBc")
-
-    def tearDown(self):
-        shutil.rmtree(self.temp_dir)
-        shutil.rmtree(self.temp_dir2)
 
     def test_empty_location(self):
         """
@@ -414,14 +408,16 @@ class FileStorageTests(SimpleTestCase):
         """The storage backend should preserve case of filenames."""
         # Create a storage backend associated with the mixed case name
         # directory.
-        other_temp_storage = self.storage_class(location=self.temp_dir2)
+        temp_dir2 = tempfile.mkdtemp(suffix="aBc")
+        self.addCleanup(shutil.rmtree, temp_dir2)
+        other_temp_storage = self.storage_class(location=temp_dir2)
         # Ask that storage backend to store a file with a mixed case filename.
         mixed_case = "CaSe_SeNsItIvE"
         file = other_temp_storage.open(mixed_case, "w")
         file.write("storage contents")
         file.close()
         self.assertEqual(
-            os.path.join(self.temp_dir2, mixed_case),
+            os.path.join(temp_dir2, mixed_case),
             other_temp_storage.path(mixed_case),
         )
         other_temp_storage.delete(mixed_case)
@@ -773,18 +769,24 @@ class FileFieldStorageTests(TestCase):
 
     def test_duplicate_filename(self):
         # Multiple files with the same name get _(7 random chars) appended to them.
-        objs = [Storage() for i in range(2)]
-        for o in objs:
-            o.normal.save("multiple_files.txt", ContentFile("Same Content"))
-        try:
-            names = [o.normal.name for o in objs]
-            self.assertEqual(names[0], "tests/multiple_files.txt")
-            self.assertRegex(
-                names[1], "tests/multiple_files_%s.txt" % FILE_SUFFIX_REGEX
-            )
-        finally:
-            for o in objs:
-                o.delete()
+        tests = [
+            ("multiple_files", "txt"),
+            ("multiple_files_many_extensions", "tar.gz"),
+        ]
+        for filename, extension in tests:
+            with self.subTest(filename=filename):
+                objs = [Storage() for i in range(2)]
+                for o in objs:
+                    o.normal.save(f"{filename}.{extension}", ContentFile("Content"))
+                try:
+                    names = [o.normal.name for o in objs]
+                    self.assertEqual(names[0], f"tests/{filename}.{extension}")
+                    self.assertRegex(
+                        names[1], f"tests/{filename}_{FILE_SUFFIX_REGEX}.{extension}"
+                    )
+                finally:
+                    for o in objs:
+                        o.delete()
 
     def test_file_truncation(self):
         # Given the max_length is limited, when multiple files get uploaded
@@ -917,9 +919,7 @@ class FieldCallableFileStorageTests(SimpleTestCase):
         self.temp_storage_location = tempfile.mkdtemp(
             suffix="filefield_callable_storage"
         )
-
-    def tearDown(self):
-        shutil.rmtree(self.temp_storage_location)
+        self.addCleanup(shutil.rmtree, self.temp_storage_location)
 
     def test_callable_base_class_error_raises(self):
         class NotStorage:
@@ -993,11 +993,9 @@ class SlowFile(ContentFile):
 class FileSaveRaceConditionTest(SimpleTestCase):
     def setUp(self):
         self.storage_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.storage_dir)
         self.storage = FileSystemStorage(self.storage_dir)
         self.thread = threading.Thread(target=self.save_file, args=["conflict"])
-
-    def tearDown(self):
-        shutil.rmtree(self.storage_dir)
 
     def save_file(self, name):
         name = self.storage.save(name, SlowFile(b"Data"))
@@ -1017,12 +1015,10 @@ class FileSaveRaceConditionTest(SimpleTestCase):
 class FileStoragePermissions(unittest.TestCase):
     def setUp(self):
         self.umask = 0o027
-        self.old_umask = os.umask(self.umask)
+        old_umask = os.umask(self.umask)
+        self.addCleanup(os.umask, old_umask)
         self.storage_dir = tempfile.mkdtemp()
-
-    def tearDown(self):
-        shutil.rmtree(self.storage_dir)
-        os.umask(self.old_umask)
+        self.addCleanup(shutil.rmtree, self.storage_dir)
 
     @override_settings(FILE_UPLOAD_PERMISSIONS=0o654)
     def test_file_upload_permissions(self):
@@ -1059,10 +1055,8 @@ class FileStoragePermissions(unittest.TestCase):
 class FileStoragePathParsing(SimpleTestCase):
     def setUp(self):
         self.storage_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.storage_dir)
         self.storage = FileSystemStorage(self.storage_dir)
-
-    def tearDown(self):
-        shutil.rmtree(self.storage_dir)
 
     def test_directory_with_dot(self):
         """Regression test for #9610.
@@ -1095,11 +1089,9 @@ class FileStoragePathParsing(SimpleTestCase):
 
 class ContentFileStorageTestCase(unittest.TestCase):
     def setUp(self):
-        self.storage_dir = tempfile.mkdtemp()
-        self.storage = FileSystemStorage(self.storage_dir)
-
-    def tearDown(self):
-        shutil.rmtree(self.storage_dir)
+        storage_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, storage_dir)
+        self.storage = FileSystemStorage(storage_dir)
 
     def test_content_saving(self):
         """
@@ -1120,10 +1112,8 @@ class FileLikeObjectTestCase(LiveServerTestCase):
 
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.temp_dir)
         self.storage = FileSystemStorage(location=self.temp_dir)
-
-    def tearDown(self):
-        shutil.rmtree(self.temp_dir)
 
     def test_urllib_request_urlopen(self):
         """
