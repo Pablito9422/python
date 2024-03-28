@@ -60,6 +60,9 @@ to be machine-readable, you will always want unlocalized values. You
 may also want to use localization in selected templates, rather than
 using localization everywhere.
 
+The format used is the one from the settings and under normal circumstances
+the locale dictated format has a higher precedence and will be applied instead.
+
 To allow for fine control over the use of localization, Django
 provides the ``l10n`` template library that contains the following
 tags and filters.

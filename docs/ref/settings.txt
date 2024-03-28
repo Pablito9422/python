@@ -1813,8 +1813,10 @@ Default: ``'en-us'``
 
 A string representing the language code for this installation. This should be in
 standard :term:`language ID format <language code>`. For example, U.S. English
-is ``"en-us"``. See also the `list of language identifiers`_ and
-:doc:`/topics/i18n/index`.
+is ``"en-us"``, the default format to use when localization is disabled
+with :tfilter:`localize` and :tfilter:`unlocalize` template filter or tag see
+:ref:`controlling localization in templates <topic-l10n-templates>`. See also
+the `list of language identifiers`_ and :doc:`/topics/i18n/index`.
 
 :setting:`USE_I18N` must be active for this setting to have any effect.
 
