@@ -620,31 +620,35 @@ TEST_DATA = [
     (ProhibitNullCharactersValidator(), "\x00something", ValidationError),
     (ProhibitNullCharactersValidator(), "something", None),
     (ProhibitNullCharactersValidator(), None, None),
-    (validate_domain_name, '000000.org', None),
-    (validate_domain_name, 'python.org', None),
-    (validate_domain_name, 'python.co.uk', None),
-    (validate_domain_name, 'python.tk', None),
-    (validate_domain_name, 'domain.with.idn.tld.उदाहरण.परीक्ष', None),
-    (validate_domain_name, 'ıçğü.com', None),
-    (validate_domain_name, 'xn--7ca6byfyc.com', None),
-    (validate_domain_name, 'hg.python.org', None),
-    (validate_domain_name, 'python.xyz', None),
-    (validate_domain_name, 'djangoproject.com', None),
-    (validate_domain_name, 'DJANGOPROJECT.COM', None),
-    (validate_domain_name, 'spam.eggs', None),
-    (validate_domain_name, 'python-python.com', None),
-    (validate_domain_name, 'python.name.uk', None),
-    (validate_domain_name, 'python.tips', None),
-    (validate_domain_name, 'http://例子.测试', None),
-    (validate_domain_name, 'http://dashinpunytld.xn---c', None),
-    (validate_domain_name, 'python..org', ValidationError),
-    (validate_domain_name, 'python-.org', ValidationError),
-    (validate_domain_name, 'too-long-name.'*20+'com', ValidationError),
-    (validate_domain_name, 'stupid-name试', ValidationError),
-    (DomainNameValidator(accept_idna=False), 'non-idna-domain-name-passes.com', None),
-    (DomainNameValidator(accept_idna=False), 'domain.with.idn.tld.उदाहरण.परीक्ष', ValidationError),
-    (DomainNameValidator(accept_idna=False), 'ıçğü.com', ValidationError),
-    (DomainNameValidator(accept_idna=False), 'not-domain-name', ValidationError)
+    (validate_domain_name, "000000.org", None),
+    (validate_domain_name, "python.org", None),
+    (validate_domain_name, "python.co.uk", None),
+    (validate_domain_name, "python.tk", None),
+    (validate_domain_name, "domain.with.idn.tld.उदाहरण.परीक्ष", None),
+    (validate_domain_name, "ıçğü.com", None),
+    (validate_domain_name, "xn--7ca6byfyc.com", None),
+    (validate_domain_name, "hg.python.org", None),
+    (validate_domain_name, "python.xyz", None),
+    (validate_domain_name, "djangoproject.com", None),
+    (validate_domain_name, "DJANGOPROJECT.COM", None),
+    (validate_domain_name, "spam.eggs", None),
+    (validate_domain_name, "python-python.com", None),
+    (validate_domain_name, "python.name.uk", None),
+    (validate_domain_name, "python.tips", None),
+    (validate_domain_name, "http://例子.测试", None),
+    (validate_domain_name, "http://dashinpunytld.xn---c", None),
+    (validate_domain_name, "python..org", ValidationError),
+    (validate_domain_name, "python-.org", ValidationError),
+    (validate_domain_name, "too-long-name." * 20 + "com", ValidationError),
+    (validate_domain_name, "stupid-name试", ValidationError),
+    (DomainNameValidator(accept_idna=False), "non-idna-domain-name-passes.com", None),
+    (
+        DomainNameValidator(accept_idna=False),
+        "domain.with.idn.tld.उदाहरण.परीक्ष",
+        ValidationError,
+    ),
+    (DomainNameValidator(accept_idna=False), "ıçğü.com", ValidationError),
+    (DomainNameValidator(accept_idna=False), "not-domain-name", ValidationError),
 ]
 
 # Add valid and invalid URL tests.
@@ -886,15 +890,13 @@ class TestValidatorEquality(TestCase):
         )
         self.assertNotEqual(
             DomainNameValidator(),
-            DomainNameValidator(code='custom_code'),
+            DomainNameValidator(code="custom_code"),
         )
         self.assertEqual(
-            DomainNameValidator(message='custom error message'),
-            DomainNameValidator(message='custom error message'),
+            DomainNameValidator(message="custom error message"),
+            DomainNameValidator(message="custom error message"),
         )
         self.assertNotEqual(
-            DomainNameValidator(message='custom error message'),
-            DomainNameValidator(
-                message='custom error message', code='custom_code'
-            ),
+            DomainNameValidator(message="custom error message"),
+            DomainNameValidator(message="custom error message", code="custom_code"),
         )

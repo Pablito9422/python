@@ -52,7 +52,7 @@ class RegexValidator:
         regex_matches = self.regex.search(str(value))
         invalid_input = regex_matches if self.inverse_match else not regex_matches
         if invalid_input:
-            raise ValidationError(self.message, code=self.code, params={"value": value}) 
+            raise ValidationError(self.message, code=self.code, params={"value": value})
 
     def __eq__(self, other):
         return (
@@ -67,12 +67,14 @@ class RegexValidator:
 
 @deconstructible
 class DomainNameValidator(RegexValidator):
-    message = _('Enter a valid domain name.')
+    message = _("Enter a valid domain name.")
     ul = "\u00a1-\uffff"  # Unicode letters range (must not be a raw string).
     # Max length for domain name labels is 63 characters per RFC 1034 sec. 3.1
-    hostname_re = r"[a-z" + ul + r"0-9](?:[a-z" + ul + r"0-9-]{0,61}[a-z" + ul + r"0-9])?"
+    hostname_re = (
+        r"[a-z" + ul + r"0-9](?:[a-z" + ul + r"0-9-]{0,61}[a-z" + ul + r"0-9])?"
+    )
     domain_re = r"(?:\.(?!-)[a-z" + ul + r"0-9-]{1,63}(?<!-))*"
-    # Top-level domain
+    # Top-level domain
     tld_re = (
         r"\."  # dot
         r"(?!-)"  # can't start with a dash
@@ -94,14 +96,20 @@ class DomainNameValidator(RegexValidator):
     max_length = 255
 
     def __init__(self, **kwargs):
-        self.accept_idna = kwargs.pop('accept_idna', True)
+        self.accept_idna = kwargs.pop("accept_idna", True)
 
         if self.accept_idna:
-            self.regex = _lazy_re_compile(self.hostname_re + self.domain_re + self.tld_re, re.IGNORECASE)
+            self.regex = _lazy_re_compile(
+                self.hostname_re + self.domain_re + self.tld_re, re.IGNORECASE
+            )
         else:
-            self.regex = _lazy_re_compile(self.ascii_only_hostname_re + self.ascii_only_domain_re + self.ascii_only_tld_re, re.IGNORECASE)
+            self.regex = _lazy_re_compile(
+                self.ascii_only_hostname_re
+                + self.ascii_only_domain_re
+                + self.ascii_only_tld_re,
+                re.IGNORECASE,
+            )
         super().__init__(**kwargs)
-        
 
     def __call__(self, value):
         if not isinstance(value, str) or len(value) > self.max_length:
@@ -111,11 +119,12 @@ class DomainNameValidator(RegexValidator):
             super().__call__(value)
         else:
             if not value.isascii():
-                raise ValidationError(self.message, code=self.code, params={"value": value})
+                raise ValidationError(
+                    self.message, code=self.code, params={"value": value}
+                )
             super().__call__(value)
 
 
-                
 validate_domain_name = DomainNameValidator()
 
 
@@ -298,7 +307,7 @@ class EmailValidator:
 
 validate_email = EmailValidator()
 
-slug_re = _lazy_re_compile(r'^[-a-zA-Z0-9_]+\Z')
+slug_re = _lazy_re_compile(r"^[-a-zA-Z0-9_]+\Z")
 validate_slug = RegexValidator(
     slug_re,
     # Translators: "letters" means latin letters: a-z and A-Z.
