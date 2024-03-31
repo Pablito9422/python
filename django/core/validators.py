@@ -71,6 +71,7 @@ class DomainNameValidator(RegexValidator):
     message = _('Enter a valid domain name.')
     ul = "\u00a1-\uffff"  # Unicode letters range (must not be a raw string).
     # Max length for domain name labels is 63 characters per RFC 1034 sec. 3.1
+    hostname_re = r"[a-z" + ul + r"0-9](?:[a-z" + ul + r"0-9-]{0,61}[a-z" + ul + r"0-9])?"
     domain_re = r"(?:\.(?!-)[a-z" + ul + r"0-9-]{1,63}(?<!-))*"
     # Top-level domain
     tld_re = (
@@ -81,7 +82,7 @@ class DomainNameValidator(RegexValidator):
         r"(?<!-)"  # can't end with a dash
         r"\.?"  # may have a trailing dot
     )
-
+    ascii_only_hostname_re = r"[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?"
     ascii_only_domain_re = r"(?:\.(?!-)[a-zA-Z0-9-]{1,63}(?<!-))*"
     ascii_only_tld_re = (
         r"\."  # dot
@@ -91,20 +92,15 @@ class DomainNameValidator(RegexValidator):
         r"\.?"  # may have a trailing dot
     )
 
-
-    accept_idna = True
     max_length = 255
-
-    regex = _lazy_re_compile(domain_re + tld_re, re.IGNORECASE)
-    ascii_only_regex = _lazy_re_compile(ascii_only_domain_re + ascii_only_tld_re, re.IGNORECASE)
-
-    if not accept_idna:
-        regex = ascii_only_regex
 
     def __init__(self, **kwargs):
         self.accept_idna = kwargs.pop('accept_idna', True)
-        if not self.accept_idna:
-            self.regex = self.ascii_only_regex
+
+        if self.accept_idna:
+            self.regex = _lazy_re_compile(self.hostname_re + self.domain_re + self.tld_re, re.IGNORECASE)
+        else:
+            self.regex = _lazy_re_compile(self.ascii_only_hostname_re + self.ascii_only_domain_re + self.ascii_only_tld_re, re.IGNORECASE)
         super().__init__(**kwargs)
         
 
@@ -113,16 +109,11 @@ class DomainNameValidator(RegexValidator):
             raise ValidationError(self.message, code=self.code, params={"value": value})
 
         if self.accept_idna:
-            try:
-                super().__call__(value)
-            except ValidationError as e:
-                # In case it is IDNA convert to ACE i.e. ASCII representation.
-                # TODO - is this needed or is it covered in the regex?
-                value = punycode(value)
-                super().__call__(value)
-        else:
             super().__call__(value)
-
+        else:
+            if not value.isascii():
+                raise ValidationError(self.message, code=self.code, params={"value": value})
+            super().__call__(value)
 
 
                 
@@ -141,12 +132,11 @@ class URLValidator(RegexValidator):
     ipv6_re = r"\[[0-9a-f:.]+\]"  # (simple regex, validated later)
 
     # Host patterns
-    hostname_re = (
-        r"[a-z" + ul + r"0-9](?:[a-z" + ul + r"0-9-]{0,61}[a-z" + ul + r"0-9])?"
-    )
+    hostname_re = DomainNameValidator.hostname_re
     # Max length for domain name labels is 63 characters per RFC 1034 sec. 3.1
     domain_re = DomainNameValidator.domain_re
     tld_re = DomainNameValidator.tld_re
+
     host_re = "(" + hostname_re + domain_re + tld_re + "|localhost)"
 
     regex = _lazy_re_compile(

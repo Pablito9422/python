@@ -633,15 +633,18 @@ TEST_DATA = [
     (validate_domain_name, 'DJANGOPROJECT.COM', None),
     (validate_domain_name, 'spam.eggs', None),
     (validate_domain_name, 'python-python.com', None),
-    (validate_domain_name, 'python..org', ValidationError),
-    (validate_domain_name, 'python-.org', ValidationError),
     (validate_domain_name, 'python.name.uk', None),
     (validate_domain_name, 'python.tips', None),
     (validate_domain_name, 'http://例子.测试', None),
     (validate_domain_name, 'http://dashinpunytld.xn---c', None),
+    (validate_domain_name, 'python..org', ValidationError),
+    (validate_domain_name, 'python-.org', ValidationError),
+    (validate_domain_name, 'too-long-name.'*20+'com', ValidationError),
+    (validate_domain_name, 'stupid-name试', ValidationError),
+    (DomainNameValidator(accept_idna=False), 'non-idna-domain-name-passes.com', None),
     (DomainNameValidator(accept_idna=False), 'domain.with.idn.tld.उदाहरण.परीक्ष', ValidationError),
     (DomainNameValidator(accept_idna=False), 'ıçğü.com', ValidationError),
-    (validate_domain_name, 'too-long-name.'*20+'com', ValidationError)
+    (DomainNameValidator(accept_idna=False), 'not-domain-name', ValidationError)
 ]
 
 # Add valid and invalid URL tests.
