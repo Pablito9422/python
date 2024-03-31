@@ -52,8 +52,7 @@ class RegexValidator:
         regex_matches = self.regex.search(str(value))
         invalid_input = regex_matches if self.inverse_match else not regex_matches
         if invalid_input:
-            raise ValidationError(self.message, code=self.code, params={"value": value})
-        
+            raise ValidationError(self.message, code=self.code, params={"value": value}) 
 
     def __eq__(self, other):
         return (
@@ -298,7 +297,6 @@ class EmailValidator:
 
 
 validate_email = EmailValidator()
-
 
 slug_re = _lazy_re_compile(r'^[-a-zA-Z0-9_]+\Z')
 validate_slug = RegexValidator(
