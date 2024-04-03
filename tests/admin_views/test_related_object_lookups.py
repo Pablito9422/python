@@ -102,15 +102,17 @@ class SeleniumTests(AdminSeleniumTestCase):
 
         # Check that both the "Available" m2m box and the "Fk" dropdown now
         # include the newly added CamelCaseModel instance.
+        fk_dropdown = self.selenium.find_element(By.ID, "id_fk")
         self.assertHTMLEqual(
-            self.selenium.find_element(By.ID, "id_fk"),
+            fk_dropdown.get_attribute("innerHTML"),
             f"""
             <option value="" selected="">---------</option>
             <option value="1" selected>{interesting_name}</option>
             """,
         )
+        m2m_box = self.selenium.find_element(By.ID, "id_m2m_from")
         self.assertHTMLEqual(
-            self.selenium.find_element(By.ID, "id_m2m_from"),
+            m2m_box.get_attribute("innerHTML"),
             f"""
             <option value="1">{interesting_name}</option>
             """,
