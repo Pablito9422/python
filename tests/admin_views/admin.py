@@ -33,6 +33,8 @@ from .models import (
     Book,
     Bookmark,
     Box,
+    CamelCaseModel,
+    CamelCaseRelatedModel,
     Category,
     Chapter,
     ChapterXtra1,
@@ -58,7 +60,6 @@ from .models import (
     ExplicitlyProvidedPK,
     ExternalSubscriber,
     Fabric,
-    Fan,
     FancyDoodad,
     FieldOverridePost,
     FilteredManager,
@@ -89,7 +90,6 @@ from .models import (
     Persona,
     Picture,
     Pizza,
-    Player,
     Plot,
     PlotDetails,
     PlotProxy,
@@ -1183,8 +1183,8 @@ class SquareAdmin(admin.ModelAdmin):
     readonly_fields = ("area",)
 
 
-class FanAdmin(admin.ModelAdmin):
-    filter_horizontal = ["players"]
+class CamelCaseAdmin(admin.ModelAdmin):
+    filter_horizontal = ["m2m"]
 
 
 site = admin.AdminSite(name="admin")
@@ -1311,8 +1311,8 @@ site.register(Box)
 site.register(Country, CountryAdmin)
 site.register(Traveler, TravelerAdmin)
 site.register(Square, SquareAdmin)
-site.register(Player)
-site.register(Fan, FanAdmin)
+site.register(CamelCaseModel)
+site.register(CamelCaseRelatedModel, CamelCaseAdmin)
 
 # Register core models we need in our tests
 site.register(User, UserAdmin)

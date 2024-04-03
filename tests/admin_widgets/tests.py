@@ -590,6 +590,19 @@ class AdminFileWidgetTests(TestDataMixin, TestCase):
             '<input type="file" name="test">',
         )
 
+    def test_render_with_attrs_id(self):
+        storage_url = default_storage.url("")
+        w = widgets.AdminFileWidget()
+        self.assertHTMLEqual(
+            w.render("test", self.album.cover_art, attrs={"id": "test_id"}),
+            f'<p class="file-upload">Currently: <a href="{storage_url}albums/'
+            r'hybrid_theory.jpg">albums\hybrid_theory.jpg</a> '
+            '<span class="clearable-file-input">'
+            '<input type="checkbox" name="test-clear" id="test-clear_id"> '
+            '<label for="test-clear_id">Clear</label></span><br>'
+            'Change: <input type="file" name="test" id="test_id"></p>',
+        )
+
     def test_render_required(self):
         widget = widgets.AdminFileWidget()
         widget.is_required = True
@@ -618,6 +631,20 @@ class AdminFileWidgetTests(TestDataMixin, TestCase):
             },
         )
 
+    def test_render_checked(self):
+        storage_url = default_storage.url("")
+        widget = widgets.AdminFileWidget()
+        widget.checked = True
+        self.assertHTMLEqual(
+            widget.render("test", self.album.cover_art),
+            f'<p class="file-upload">Currently: <a href="{storage_url}albums/'
+            r'hybrid_theory.jpg">albums\hybrid_theory.jpg</a> '
+            '<span class="clearable-file-input">'
+            '<input type="checkbox" name="test-clear" id="test-clear_id" checked>'
+            '<label for="test-clear_id">Clear</label></span><br>'
+            'Change: <input type="file" name="test" checked></p>',
+        )
+
     def test_readonly_fields(self):
         """
         File widgets should render as a link when they're marked "read only."
@@ -641,7 +668,7 @@ class AdminFileWidgetTests(TestDataMixin, TestCase):
         response = self.client.get(reverse("admin:admin_widgets_album_add"))
         self.assertContains(
             response,
-            '<div class="readonly"></div>',
+            '<div class="readonly">-</div>',
             html=True,
         )
 
@@ -909,6 +936,28 @@ class RelatedFieldWidgetWrapperTests(SimpleTestCase):
         output = wrapper.render("name", "value")
         # Related item links are present.
         self.assertIn("<a ", output)
+
+    def test_data_model_ref_when_model_name_is_camel_case(self):
+        rel = VideoStream._meta.get_field("release_event").remote_field
+        widget = forms.Select()
+        wrapper = widgets.RelatedFieldWidgetWrapper(widget, rel, widget_admin_site)
+        self.assertIs(wrapper.is_hidden, False)
+        context = wrapper.get_context("release_event", None, {})
+        self.assertEqual(context["model"], "release event")
+        self.assertEqual(context["model_name"], "releaseevent")
+        output = wrapper.render("stream", "value")
+        expected = """
+        <div class="related-widget-wrapper" data-model-ref="releaseevent">
+          <select name="stream">
+          </select>
+          <a class="related-widget-wrapper-link add-related" id="add_id_stream"
+             data-popup="yes" title="Add another release event"
+             href="/admin_widgets/releaseevent/add/?_to_field=album&amp;_popup=1">
+            <img src="/static/admin/img/icon-addlink.svg" alt="" width="20" height="20">
+          </a>
+        </div>
+        """
+        self.assertHTMLEqual(output, expected)
 
 
 @override_settings(ROOT_URLCONF="admin_widgets.urls")
@@ -1717,13 +1766,15 @@ class AdminRawIdWidgetSeleniumTests(AdminWidgetSeleniumTestCase):
 
 class RelatedFieldWidgetSeleniumTests(AdminWidgetSeleniumTestCase):
     def test_ForeignKey_using_to_field(self):
+        from selenium.webdriver import ActionChains
         from selenium.webdriver.common.by import By
         from selenium.webdriver.support.ui import Select
 
         self.admin_login(username="super", password="secret", login_url="/")
-        self.selenium.get(
-            self.live_server_url + reverse("admin:admin_widgets_profile_add")
-        )
+        with self.wait_page_loaded():
+            self.selenium.get(
+                self.live_server_url + reverse("admin:admin_widgets_profile_add")
+            )
 
         main_window = self.selenium.current_window_handle
         # Click the Add User button to add new
@@ -1769,7 +1820,8 @@ class RelatedFieldWidgetSeleniumTests(AdminWidgetSeleniumTestCase):
             By.CSS_SELECTOR, "#id_user option[value=changednewuser]"
         )
 
-        self.selenium.find_element(By.ID, "view_id_user").click()
+        element = self.selenium.find_element(By.ID, "view_id_user")
+        ActionChains(self.selenium).move_to_element(element).click(element).perform()
         self.wait_for_value("#id_username", "changednewuser")
         self.selenium.back()
 

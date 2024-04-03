@@ -5,6 +5,7 @@ import inspect
 from collections import defaultdict
 from decimal import Decimal
 from enum import Enum
+from itertools import chain
 from types import NoneType
 from uuid import UUID
 
@@ -14,7 +15,7 @@ from django.db.models import fields
 from django.db.models.constants import LOOKUP_SEP
 from django.db.models.query_utils import Q
 from django.utils.deconstruct import deconstructible
-from django.utils.functional import cached_property
+from django.utils.functional import cached_property, classproperty
 from django.utils.hashable import make_hashable
 
 
@@ -175,7 +176,7 @@ class BaseExpression:
     _output_field_resolved_to_none = False
     # Can the expression be used in a WHERE clause?
     filterable = True
-    # Can the expression can be used as a source expression in Window?
+    # Can the expression be used as a source expression in Window?
     window_compatible = False
     # Can the expression be used as a database default value?
     allowed_default = False
@@ -204,9 +205,11 @@ class BaseExpression:
 
     def _parse_expressions(self, *expressions):
         return [
-            arg
-            if hasattr(arg, "resolve_expression")
-            else (F(arg) if isinstance(arg, str) else Value(arg))
+            (
+                arg
+                if hasattr(arg, "resolve_expression")
+                else (F(arg) if isinstance(arg, str) else Value(arg))
+            )
             for arg in expressions
         ]
 
@@ -285,9 +288,11 @@ class BaseExpression:
         c.is_summary = summarize
         c.set_source_expressions(
             [
-                expr.resolve_expression(query, allow_joins, reuse, summarize)
-                if expr
-                else None
+                (
+                    expr.resolve_expression(query, allow_joins, reuse, summarize)
+                    if expr
+                    else None
+                )
                 for expr in c.get_source_expressions()
             ]
         )
@@ -366,22 +371,16 @@ class BaseExpression:
         field = self.output_field
         internal_type = field.get_internal_type()
         if internal_type == "FloatField":
-            return (
-                lambda value, expression, connection: None
-                if value is None
-                else float(value)
+            return lambda value, expression, connection: (
+                None if value is None else float(value)
             )
         elif internal_type.endswith("IntegerField"):
-            return (
-                lambda value, expression, connection: None
-                if value is None
-                else int(value)
+            return lambda value, expression, connection: (
+                None if value is None else int(value)
             )
         elif internal_type == "DecimalField":
-            return (
-                lambda value, expression, connection: None
-                if value is None
-                else Decimal(value)
+            return lambda value, expression, connection: (
+                None if value is None else Decimal(value)
             )
         return self._convert_value_noop
 
@@ -402,10 +401,13 @@ class BaseExpression:
         return clone
 
     def replace_expressions(self, replacements):
+        if not replacements:
+            return self
         if replacement := replacements.get(self):
             return replacement
+        if not (source_expressions := self.get_source_expressions()):
+            return self
         clone = self.copy()
-        source_expressions = clone.get_source_expressions()
         clone.set_source_expressions(
             [
                 expr.replace_expressions(replacements) if expr else None
@@ -429,9 +431,11 @@ class BaseExpression:
         clone = self.copy()
         clone.set_source_expressions(
             [
-                F(f"{prefix}{expr.name}")
-                if isinstance(expr, F)
-                else expr.prefix_references(prefix)
+                (
+                    F(f"{prefix}{expr.name}")
+                    if isinstance(expr, F)
+                    else expr.prefix_references(prefix)
+                )
                 for expr in self.get_source_expressions()
             ]
         )
@@ -485,13 +489,18 @@ class BaseExpression:
 class Expression(BaseExpression, Combinable):
     """An expression that can be combined with other expressions."""
 
+    @classproperty
+    @functools.lru_cache(maxsize=128)
+    def _constructor_signature(cls):
+        return inspect.signature(cls.__init__)
+
     @cached_property
     def identity(self):
-        constructor_signature = inspect.signature(self.__init__)
         args, kwargs = self._constructor_args
-        signature = constructor_signature.bind_partial(*args, **kwargs)
+        signature = self._constructor_signature.bind_partial(self, *args, **kwargs)
         signature.apply_defaults()
-        arguments = signature.arguments.items()
+        arguments = iter(signature.arguments.items())
+        next(arguments)
         identity = [self.__class__]
         for arg, value in arguments:
             if isinstance(value, fields.Field):
@@ -589,10 +598,16 @@ _connector_combinations = [
     },
     # Numeric with NULL.
     {
-        connector: [
-            (field_type, NoneType, field_type),
-            (NoneType, field_type, field_type),
-        ]
+        connector: list(
+            chain.from_iterable(
+                [(field_type, NoneType, field_type), (NoneType, field_type, field_type)]
+                for field_type in (
+                    fields.IntegerField,
+                    fields.DecimalField,
+                    fields.FloatField,
+                )
+            )
+        )
         for connector in (
             Combinable.ADD,
             Combinable.SUB,
@@ -601,7 +616,6 @@ _connector_combinations = [
             Combinable.MOD,
             Combinable.POW,
         )
-        for field_type in (fields.IntegerField, fields.DecimalField, fields.FloatField)
     },
     # Date/DateTimeField/DurationField/TimeField.
     {
@@ -851,6 +865,9 @@ class F(Combinable):
     def __repr__(self):
         return "{}({})".format(self.__class__.__name__, self.name)
 
+    def __getitem__(self, subscript):
+        return Sliced(self, subscript)
+
     def resolve_expression(
         self, query=None, allow_joins=True, reuse=None, summarize=False, for_save=False
     ):
@@ -923,6 +940,63 @@ class OuterRef(F):
 
     def relabeled_clone(self, relabels):
         return self
+
+
+class Sliced(F):
+    """
+    An object that contains a slice of an F expression.
+
+    Object resolves the column on which the slicing is applied, and then
+    applies the slicing if possible.
+    """
+
+    def __init__(self, obj, subscript):
+        super().__init__(obj.name)
+        self.obj = obj
+        if isinstance(subscript, int):
+            if subscript < 0:
+                raise ValueError("Negative indexing is not supported.")
+            self.start = subscript + 1
+            self.length = 1
+        elif isinstance(subscript, slice):
+            if (subscript.start is not None and subscript.start < 0) or (
+                subscript.stop is not None and subscript.stop < 0
+            ):
+                raise ValueError("Negative indexing is not supported.")
+            if subscript.step is not None:
+                raise ValueError("Step argument is not supported.")
+            if subscript.stop and subscript.start and subscript.stop < subscript.start:
+                raise ValueError("Slice stop must be greater than slice start.")
+            self.start = 1 if subscript.start is None else subscript.start + 1
+            if subscript.stop is None:
+                self.length = None
+            else:
+                self.length = subscript.stop - (subscript.start or 0)
+        else:
+            raise TypeError("Argument to slice must be either int or slice instance.")
+
+    def __repr__(self):
+        start = self.start - 1
+        stop = None if self.length is None else start + self.length
+        subscript = slice(start, stop)
+        return f"{self.__class__.__qualname__}({self.obj!r}, {subscript!r})"
+
+    def resolve_expression(
+        self,
+        query=None,
+        allow_joins=True,
+        reuse=None,
+        summarize=False,
+        for_save=False,
+    ):
+        resolved = query.resolve_ref(self.name, allow_joins, reuse, summarize)
+        if isinstance(self.obj, (OuterRef, self.__class__)):
+            expr = self.obj.resolve_expression(
+                query, allow_joins, reuse, summarize, for_save
+            )
+        else:
+            expr = resolved
+        return resolved.output_field.slice_expression(expr, self.start, self.length)
 
 
 @deconstructible(path="django.db.models.Func")
@@ -1134,10 +1208,9 @@ class RawSQL(Expression):
     ):
         # Resolve parents fields used in raw SQL.
         if query.model:
-            for parent in query.model._meta.get_parent_list():
+            for parent in query.model._meta.all_parents:
                 for parent_field in parent._meta.local_fields:
-                    _, column_name = parent_field.get_attname_column()
-                    if column_name.lower() in self.sql.lower():
+                    if parent_field.column.lower() in self.sql.lower():
                         query.resolve_ref(
                             parent_field.name, allow_joins, reuse, summarize
                         )
@@ -1265,8 +1338,14 @@ class ExpressionList(Func):
         # Casting to numeric is unnecessary.
         return self.as_sql(compiler, connection, **extra_context)
 
+    def get_group_by_cols(self):
+        group_by_cols = []
+        for expr in self.get_source_expressions():
+            group_by_cols.extend(expr.get_group_by_cols())
+        return group_by_cols
 
-class OrderByList(Func):
+
+class OrderByList(ExpressionList):
     allowed_default = False
     template = "ORDER BY %(expressions)s"
 
@@ -1280,17 +1359,6 @@ class OrderByList(Func):
             for expr in expressions
         )
         super().__init__(*expressions, **extra)
-
-    def as_sql(self, *args, **kwargs):
-        if not self.source_expressions:
-            return "", ()
-        return super().as_sql(*args, **kwargs)
-
-    def get_group_by_cols(self):
-        group_by_cols = []
-        for order_by in self.get_source_expressions():
-            group_by_cols.extend(order_by.get_group_by_cols())
-        return group_by_cols
 
 
 @deconstructible(path="django.db.models.ExpressionWrapper")
@@ -1699,10 +1767,13 @@ class OrderBy(Expression):
         return (template % placeholders).rstrip(), params
 
     def as_oracle(self, compiler, connection):
-        # Oracle doesn't allow ORDER BY EXISTS() or filters unless it's wrapped
-        # in a CASE WHEN.
-        if connection.ops.conditional_expression_supported_in_where_clause(
-            self.expression
+        # Oracle < 23c doesn't allow ORDER BY EXISTS() or filters unless it's
+        # wrapped in a CASE WHEN.
+        if (
+            not connection.features.supports_boolean_expr_in_select_clause
+            and connection.ops.conditional_expression_supported_in_where_clause(
+                self.expression
+            )
         ):
             copy = self.copy()
             copy.expression = Case(

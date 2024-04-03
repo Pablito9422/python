@@ -121,7 +121,7 @@
         var urlParams = new URLSearchParams(win.location.search);
         const tackOn = urlParams.has('_name_alteration') ? urlParams.get('_name_alteration') : '';
         const name = removePopupIndex(win.name) + tackOn;
-        let elem = document.getElementById(name);
+        const elem = document.getElementById(name);
         if (elem) {
             const elemName = elem.nodeName.toUpperCase();
             if (elemName === 'SELECT') {

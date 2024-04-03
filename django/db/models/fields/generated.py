@@ -13,7 +13,6 @@ class GeneratedField(Field):
     db_returning = True
 
     _query = None
-    _resolved_expression = None
     output_field = None
 
     def __init__(self, *, expression, output_field, db_persist=None, **kwargs):
@@ -40,7 +39,7 @@ class GeneratedField(Field):
         return Col(self.model._meta.db_table, self, self.output_field)
 
     def get_col(self, alias, output_field=None):
-        if alias != self.model._meta.db_table and output_field is None:
+        if alias != self.model._meta.db_table and output_field in (None, self):
             output_field = self.output_field
         return super().get_col(alias, output_field)
 
@@ -48,9 +47,6 @@ class GeneratedField(Field):
         super().contribute_to_class(*args, **kwargs)
 
         self._query = Query(model=self.model, alias_cols=False)
-        self._resolved_expression = self.expression.resolve_expression(
-            self._query, allow_joins=False
-        )
         # Register lookups from the output_field class.
         for lookup_name, lookup in self.output_field.get_class_lookups().items():
             self.register_lookup(lookup, lookup_name=lookup_name)
@@ -59,7 +55,16 @@ class GeneratedField(Field):
         compiler = connection.ops.compiler("SQLCompiler")(
             self._query, connection=connection, using=None
         )
-        return compiler.compile(self._resolved_expression)
+        resolved_expression = self.expression.resolve_expression(
+            self._query, allow_joins=False
+        )
+        sql, params = compiler.compile(resolved_expression)
+        if (
+            getattr(self.expression, "conditional", False)
+            and not connection.features.supports_boolean_expr_in_select_clause
+        ):
+            sql = f"CASE WHEN {sql} THEN 1 ELSE 0 END"
+        return sql, params
 
     def check(self, **kwargs):
         databases = kwargs.get("databases") or []

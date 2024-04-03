@@ -1,3 +1,7 @@
+import uuid
+from decimal import Decimal
+
+from django.apps import apps
 from django.db import IntegrityError, connection
 from django.db.models import (
     CharField,
@@ -12,7 +16,9 @@ from django.test import SimpleTestCase, TestCase, skipUnlessDBFeature
 from django.test.utils import isolate_apps
 
 from .models import (
+    Foo,
     GeneratedModel,
+    GeneratedModelFieldWithConverters,
     GeneratedModelNull,
     GeneratedModelNullVirtual,
     GeneratedModelOutputFieldDbCollation,
@@ -32,6 +38,25 @@ class BaseGeneratedFieldTests(SimpleTestCase):
                 editable=True,
                 db_persist=False,
             )
+
+    @isolate_apps("model_fields")
+    def test_contribute_to_class(self):
+        class BareModel(Model):
+            pass
+
+        new_field = GeneratedField(
+            expression=Lower("nonexistent"),
+            output_field=IntegerField(),
+            db_persist=True,
+        )
+        apps.models_ready = False
+        try:
+            # GeneratedField can be added to the model even when apps are not
+            # fully loaded.
+            new_field.contribute_to_class(BareModel, "name")
+            self.assertEqual(BareModel._meta.get_field("name"), new_field)
+        finally:
+            apps.models_ready = True
 
     def test_blank_unsupported(self):
         with self.assertRaisesMessage(ValueError, "GeneratedField must be blank."):
@@ -98,7 +123,12 @@ class BaseGeneratedFieldTests(SimpleTestCase):
                 db_persist=True,
             )
 
-        col = Square._meta.get_field("area").get_col("alias")
+        field = Square._meta.get_field("area")
+
+        col = field.get_col("alias")
+        self.assertIsInstance(col.output_field, IntegerField)
+
+        col = field.get_col("alias", field)
         self.assertIsInstance(col.output_field, IntegerField)
 
         class FloatSquare(Model):
@@ -109,7 +139,12 @@ class BaseGeneratedFieldTests(SimpleTestCase):
                 output_field=FloatField(),
             )
 
-        col = FloatSquare._meta.get_field("area").get_col("alias")
+        field = FloatSquare._meta.get_field("area")
+
+        col = field.get_col("alias")
+        self.assertIsInstance(col.output_field, FloatField)
+
+        col = field.get_col("alias", field)
         self.assertIsInstance(col.output_field, FloatField)
 
     @isolate_apps("model_fields")
@@ -143,6 +178,14 @@ class GeneratedFieldTestMixin:
         with self.assertRaisesMessage(AttributeError, msg):
             m.field
 
+    def test_full_clean(self):
+        m = self.base_model(a=1, b=2)
+        # full_clean() ignores GeneratedFields.
+        m.full_clean()
+        m.save()
+        m = self._refresh_if_needed(m)
+        self.assertEqual(m.field, 3)
+
     def test_create(self):
         m = self.base_model.objects.create(a=1, b=2)
         m = self._refresh_if_needed(m)
@@ -163,6 +206,19 @@ class GeneratedFieldTestMixin:
         m.save()
         m.refresh_from_db()
         self.assertEqual(m.field, 8)
+
+    def test_save_model_with_foreign_key(self):
+        fk_object = Foo.objects.create(a="abc", d=Decimal("12.34"))
+        m = self.base_model(a=1, b=2, fk=fk_object)
+        m.save()
+        m = self._refresh_if_needed(m)
+        self.assertEqual(m.field, 3)
+
+    def test_generated_fields_can_be_deferred(self):
+        fk_object = Foo.objects.create(a="abc", d=Decimal("12.34"))
+        m = self.base_model.objects.create(a=1, b=2, fk=fk_object)
+        m = self.base_model.objects.defer("field").get(id=m.id)
+        self.assertEqual(m.get_deferred_fields(), {"field"})
 
     def test_update(self):
         m = self.base_model.objects.create(a=1, b=2)
@@ -217,10 +273,6 @@ class GeneratedFieldTestMixin:
         db_parameters = field.db_parameters(connection)
         self.assertEqual(db_parameters["collation"], collation)
         self.assertEqual(db_parameters["type"], field.output_field.db_type(connection))
-        self.assertNotEqual(
-            db_parameters["type"],
-            field._resolved_expression.output_field.db_type(connection),
-        )
 
     def test_db_type_parameters(self):
         db_type_parameters = self.output_field_db_collation_model._meta.get_field(
@@ -249,6 +301,11 @@ class StoredGeneratedFieldTests(GeneratedFieldTestMixin, TestCase):
     nullable_model = GeneratedModelNull
     output_field_db_collation_model = GeneratedModelOutputFieldDbCollation
     params_model = GeneratedModelParams
+
+    def test_create_field_with_db_converters(self):
+        obj = GeneratedModelFieldWithConverters.objects.create(field=uuid.uuid4())
+        obj = self._refresh_if_needed(obj)
+        self.assertEqual(obj.field, obj.field_copy)
 
 
 @skipUnlessDBFeature("supports_virtual_generated_columns")
