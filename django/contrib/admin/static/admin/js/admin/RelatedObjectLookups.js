@@ -118,11 +118,10 @@
     }
 
     function dismissAddRelatedObjectPopup(win, newId, newRepr) {
-        const name = removePopupIndex(win.name);
+        var urlParams = new URLSearchParams(win.location.search);
+        const tackOn = urlParams.has('_name_alteration') ? urlParams.get('_name_alteration') : '';
+        const name = removePopupIndex(win.name) + tackOn;
         let elem = document.getElementById(name);
-        if (!elem) {
-            elem = document.getElementById(name + '_from');
-        }
         if (elem) {
             const elemName = elem.nodeName.toUpperCase();
             if (elemName === 'SELECT') {
