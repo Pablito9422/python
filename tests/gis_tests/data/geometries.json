@@ -167,7 +167,7 @@
      "name": "CompoundCurveZ",
      "num": 1009
     },
-    {"wkt": "CURVEPOLYGON Z(CIRCULARSTRING Z (0 0 0, 4 0 0, 4 4 0, 0 4 0, 0 0 0),(1 1 0, 3 3 1, 3 1 1, 1 1 2))",
+    {"wkt": "CURVEPOLYGON Z(CIRCULARSTRING Z (0 0 0, 4 0 0, 4 4 0, 0 4 0, 0 0 0),(1 1 0, 3 3 0, 3 1 0, 1 1 0))",
      "name": "CurvePolygonZ",
      "num": 1010
     },
@@ -207,7 +207,7 @@
      "name": "CompoundCurveZM",
      "num": 3009
     },
-    {"wkt": "CURVEPOLYGON ZM (CIRCULARSTRING ZM (0 0 0 0, 4 0 0 0, 4 4 0 0, 0 4 0 0, 0 0 0 0), (1 1 0 0, 3 3 1 0, 3 1 1 0, 1 1 2 0))",
+    {"wkt": "CURVEPOLYGON ZM (CIRCULARSTRING ZM (0 0 0 0, 4 0 0 0, 4 4 0 0, 0 4 0 0, 0 0 0 0), (1 1 0 0, 3 3 0 0, 3 1 0 0, 1 1 0 0))",
      "name": "CurvePolygonZM",
      "num": 3010
     },
