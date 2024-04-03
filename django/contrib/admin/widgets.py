@@ -313,8 +313,8 @@ class RelatedFieldWidgetWrapper(forms.Widget):
     def get_context(self, name, value, attrs):
         from django.contrib.admin.options import (
             IS_POPUP_VAR,
+            NAME_ALTERATION,
             TO_FIELD_VAR,
-            NAME_ALTERATION
         )
 
         rel_opts = self.rel.model._meta

@@ -118,7 +118,7 @@
     }
 
     function dismissAddRelatedObjectPopup(win, newId, newRepr) {
-        var urlParams = new URLSearchParams(win.location.search);
+        const urlParams = new URLSearchParams(win.location.search);
         const tackOn = urlParams.has('_name_alteration') ? urlParams.get('_name_alteration') : '';
         const name = removePopupIndex(win.name) + tackOn;
         const elem = document.getElementById(name);
