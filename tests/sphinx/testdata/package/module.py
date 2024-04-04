@@ -5,13 +5,8 @@ Example docstring
 from django.utils.functional import cached_property
 from tests.sphinx.testdata.package.wildcard_module import *  # noqa
 
-from . import other_module
-from .other_module import MyOtherClass
-
-# This file should never get imported. If it is, then something failed already.
-raise Exception
-
-__all__ = ["other_module", "MyOtherClass"]
+from . import other_module  # noqa
+from .other_module import MyOtherClass  # noqa
 
 
 class MyClass(object):
