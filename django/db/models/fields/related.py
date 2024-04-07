@@ -615,6 +615,16 @@ class ForeignObject(RelatedField):
         if not self.foreign_related_fields:
             return []
 
+        # If a model defines Meta.primary_key and a foreign key refers to it,
+        # the check should be skipped (since primary keys are unique).
+        pk = self.remote_field.model._meta.primary_key
+        if pk:
+            pk = set(pk)
+            if pk == {f.attname for f in self.foreign_related_fields}:
+                return []
+            elif pk == {f.name for f in self.foreign_related_fields}:
+                return []
+
         has_unique_constraint = any(
             rel_field.unique for rel_field in self.foreign_related_fields
         )

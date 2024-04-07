@@ -2815,3 +2815,22 @@ class ConstraintsTests(TestCase):
                 ]
 
         self.assertEqual(Bar.check(databases=self.databases), [])
+
+    def test_composite_pk_with_primary_key_set_to_true(self):
+        class Model(models.Model):
+            id_1 = models.IntegerField(primary_key=True)
+            id_2 = models.IntegerField()
+
+            class Meta:
+                primary_key = ("id_1", "id_2")
+
+        self.assertEqual(
+            Model.check(databases=self.databases),
+            [
+                Error(
+                    "primary_key=True must not be set if Meta.primary_key is defined.",
+                    obj=Model,
+                    id="models.E042",
+                ),
+            ],
+        )
