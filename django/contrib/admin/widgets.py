@@ -1,6 +1,7 @@
 """
 Form Widget classes specific to the Django admin site.
 """
+
 import copy
 import json
 
@@ -202,7 +203,7 @@ class ForeignKeyRawIdWidget(forms.TextInput):
                 % (
                     self.admin_site.name,
                     obj._meta.app_label,
-                    obj._meta.object_name.lower(),
+                    obj._meta.model_name,
                 ),
                 args=(obj.pk,),
             )
@@ -330,6 +331,7 @@ class RelatedFieldWidgetWrapper(forms.Widget):
             "name": name,
             "url_params": url_params,
             "model": rel_opts.verbose_name,
+            "model_name": rel_opts.model_name,
             "can_add_related": self.can_add_related,
             "can_change_related": self.can_change_related,
             "can_delete_related": self.can_delete_related,

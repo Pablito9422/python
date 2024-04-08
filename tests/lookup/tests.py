@@ -1366,6 +1366,12 @@ class LookupTests(TestCase):
             [stock_1, stock_2],
         )
 
+    def test_lookup_direct_value_rhs_unwrapped(self):
+        with self.assertNumQueries(1) as ctx:
+            self.assertIs(Author.objects.filter(GreaterThan(2, 1)).exists(), True)
+        # Direct values on RHS are not wrapped.
+        self.assertIn("2 > 1", ctx.captured_queries[0]["sql"])
+
 
 class LookupQueryingTests(TestCase):
     @classmethod
@@ -1522,7 +1528,6 @@ class LookupQueryingTests(TestCase):
         qs = Season.objects.order_by(LessThan(F("year"), 1910), F("year"))
         self.assertSequenceEqual(qs, [self.s1, self.s3, self.s2])
 
-    @skipUnlessDBFeature("supports_boolean_expr_in_select_clause")
     def test_aggregate_combined_lookup(self):
         expression = Cast(GreaterThan(F("year"), 1900), models.IntegerField())
         qs = Season.objects.aggregate(modern=models.Sum(expression))

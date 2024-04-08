@@ -25,6 +25,7 @@ from django.db.models import (
     Subquery,
     Sum,
     TimeField,
+    Transform,
     Value,
     Variance,
     When,
@@ -1727,6 +1728,28 @@ class AggregateTestCase(TestCase):
             ordered=False,
         )
 
+    def test_order_by_aggregate_transform(self):
+        class Mod100(Mod, Transform):
+            def __init__(self, expr):
+                super().__init__(expr, 100)
+
+        sum_field = IntegerField()
+        sum_field.register_lookup(Mod100, "mod100")
+        publisher_pages = (
+            Book.objects.values("publisher")
+            .annotate(sum_pages=Sum("pages", output_field=sum_field))
+            .order_by("sum_pages__mod100")
+        )
+        self.assertQuerySetEqual(
+            publisher_pages,
+            [
+                {"publisher": self.p2.id, "sum_pages": 528},
+                {"publisher": self.p4.id, "sum_pages": 946},
+                {"publisher": self.p1.id, "sum_pages": 747},
+                {"publisher": self.p3.id, "sum_pages": 1482},
+            ],
+        )
+
     def test_empty_result_optimization(self):
         with self.assertNumQueries(0):
             self.assertEqual(
@@ -2321,3 +2344,18 @@ class AggregateAnnotationPruningTests(TestCase):
             max_book_author=Max("book__authors"),
         ).aggregate(count=Count("id", filter=Q(id__in=[F("max_book_author"), 0])))
         self.assertEqual(aggregates, {"count": 1})
+
+    def test_aggregate_combined_queries(self):
+        # Combined queries could have members in their values select mask while
+        # others have them in their annotation mask which makes annotation
+        # pruning complex to implement hence why it's not implemented.
+        qs = Author.objects.values(
+            "age",
+            other=Value(0),
+        ).union(
+            Book.objects.values(
+                age=Value(0),
+                other=Value(0),
+            )
+        )
+        self.assertEqual(qs.count(), 3)

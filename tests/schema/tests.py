@@ -7,6 +7,7 @@ from unittest import mock
 
 from django.core.exceptions import FieldError
 from django.core.management.color import no_style
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import (
     DatabaseError,
     DataError,
@@ -53,7 +54,16 @@ from django.db.models import (
     Value,
 )
 from django.db.models.fields.json import KT, KeyTextTransform
-from django.db.models.functions import Abs, Cast, Collate, Lower, Random, Round, Upper
+from django.db.models.functions import (
+    Abs,
+    Cast,
+    Collate,
+    Concat,
+    Lower,
+    Random,
+    Round,
+    Upper,
+)
 from django.db.models.indexes import IndexExpression
 from django.db.transaction import TransactionManagementError, atomic
 from django.test import TransactionTestCase, skipIfDBFeature, skipUnlessDBFeature
@@ -640,9 +650,10 @@ class SchemaTests(TransactionTestCase):
         # Add the new field
         new_field = IntegerField(null=True)
         new_field.set_attributes_from_name("age")
-        with CaptureQueriesContext(
-            connection
-        ) as ctx, connection.schema_editor() as editor:
+        with (
+            CaptureQueriesContext(connection) as ctx,
+            connection.schema_editor() as editor,
+        ):
             editor.add_field(Author, new_field)
         drop_default_sql = editor.sql_alter_column_no_default % {
             "column": editor.quote_name(new_field.name),
@@ -847,6 +858,27 @@ class SchemaTests(TransactionTestCase):
         )
 
     @isolate_apps("schema")
+    @skipUnlessDBFeature("supports_virtual_generated_columns")
+    def test_add_generated_boolean_field(self):
+        class GeneratedBooleanFieldModel(Model):
+            value = IntegerField(null=True)
+            has_value = GeneratedField(
+                expression=Q(value__isnull=False),
+                output_field=BooleanField(),
+                db_persist=False,
+            )
+
+            class Meta:
+                app_label = "schema"
+
+        with connection.schema_editor() as editor:
+            editor.create_model(GeneratedBooleanFieldModel)
+        obj = GeneratedBooleanFieldModel.objects.create()
+        self.assertIs(obj.has_value, False)
+        obj = GeneratedBooleanFieldModel.objects.create(value=1)
+        self.assertIs(obj.has_value, True)
+
+    @isolate_apps("schema")
     @skipUnlessDBFeature("supports_stored_generated_columns")
     def test_add_generated_field(self):
         class GeneratedFieldOutputFieldModel(Model):
@@ -862,6 +894,39 @@ class SchemaTests(TransactionTestCase):
 
         with connection.schema_editor() as editor:
             editor.create_model(GeneratedFieldOutputFieldModel)
+
+    @isolate_apps("schema")
+    @skipUnlessDBFeature("supports_stored_generated_columns")
+    def test_add_generated_field_contains(self):
+        class GeneratedFieldContainsModel(Model):
+            text = TextField(default="foo")
+            generated = GeneratedField(
+                expression=Concat("text", Value("%")),
+                db_persist=True,
+                output_field=TextField(),
+            )
+
+            class Meta:
+                app_label = "schema"
+
+        with connection.schema_editor() as editor:
+            editor.create_model(GeneratedFieldContainsModel)
+
+        field = GeneratedField(
+            expression=Q(text__icontains="FOO"),
+            db_persist=True,
+            output_field=BooleanField(),
+        )
+        field.contribute_to_class(GeneratedFieldContainsModel, "contains_foo")
+
+        with connection.schema_editor() as editor:
+            editor.add_field(GeneratedFieldContainsModel, field)
+
+        obj = GeneratedFieldContainsModel.objects.create()
+        obj.refresh_from_db()
+        self.assertEqual(obj.text, "foo")
+        self.assertEqual(obj.generated, "foo%")
+        self.assertIs(obj.contains_foo, True)
 
     @isolate_apps("schema")
     def test_add_auto_field(self):
@@ -1057,11 +1122,14 @@ class SchemaTests(TransactionTestCase):
     def test_alter_text_field_to_not_null_with_default_value(self):
         with connection.schema_editor() as editor:
             editor.create_model(Note)
+        note = Note.objects.create(address=None)
         old_field = Note._meta.get_field("address")
         new_field = TextField(blank=True, default="", null=False)
         new_field.set_attributes_from_name("address")
         with connection.schema_editor() as editor:
             editor.alter_field(Note, old_field, new_field, strict=True)
+        note.refresh_from_db()
+        self.assertEqual(note.address, "")
 
     @skipUnlessDBFeature("can_defer_constraint_checks", "can_rollback_ddl")
     def test_alter_fk_checks_deferred_constraints(self):
@@ -2278,6 +2346,56 @@ class SchemaTests(TransactionTestCase):
         columns = self.column_classes(Author)
         self.assertEqual(columns["birth_year"][1].default, "1988")
 
+    @isolate_apps("schema")
+    def test_add_text_field_with_db_default(self):
+        class Author(Model):
+            description = TextField(db_default="(missing)")
+
+            class Meta:
+                app_label = "schema"
+
+        with connection.schema_editor() as editor:
+            editor.create_model(Author)
+        columns = self.column_classes(Author)
+        self.assertIn("(missing)", columns["description"][1].default)
+
+    @isolate_apps("schema")
+    def test_db_default_equivalent_sql_noop(self):
+        class Author(Model):
+            name = TextField(db_default=Value("foo"))
+
+            class Meta:
+                app_label = "schema"
+
+        with connection.schema_editor() as editor:
+            editor.create_model(Author)
+
+        new_field = TextField(db_default="foo")
+        new_field.set_attributes_from_name("name")
+        new_field.model = Author
+        with connection.schema_editor() as editor, self.assertNumQueries(0):
+            editor.alter_field(Author, Author._meta.get_field("name"), new_field)
+
+    @isolate_apps("schema")
+    def test_db_default_output_field_resolving(self):
+        class Author(Model):
+            data = JSONField(
+                encoder=DjangoJSONEncoder,
+                db_default={
+                    "epoch": datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
+                },
+            )
+
+            class Meta:
+                app_label = "schema"
+
+        with connection.schema_editor() as editor:
+            editor.create_model(Author)
+
+        author = Author.objects.create()
+        author.refresh_from_db()
+        self.assertEqual(author.data, {"epoch": "1970-01-01T00:00:00Z"})
+
     @skipUnlessDBFeature(
         "supports_column_check_constraints", "can_introspect_check_constraints"
     )
@@ -2459,9 +2577,10 @@ class SchemaTests(TransactionTestCase):
         with self.assertRaises(DatabaseError):
             self.column_classes(new_field.remote_field.through)
         # Add the field
-        with CaptureQueriesContext(
-            connection
-        ) as ctx, connection.schema_editor() as editor:
+        with (
+            CaptureQueriesContext(connection) as ctx,
+            connection.schema_editor() as editor,
+        ):
             editor.add_field(LocalAuthorWithM2M, new_field)
         # Table is not rebuilt.
         self.assertEqual(
@@ -2714,7 +2833,7 @@ class SchemaTests(TransactionTestCase):
         self.isolated_local_models = [DurationModel]
         constraint_name = "duration_gte_5_minutes"
         constraint = CheckConstraint(
-            check=Q(duration__gt=datetime.timedelta(minutes=5)),
+            condition=Q(duration__gt=datetime.timedelta(minutes=5)),
             name=constraint_name,
         )
         DurationModel._meta.constraints = [constraint]
@@ -2727,6 +2846,40 @@ class SchemaTests(TransactionTestCase):
         DurationModel.objects.create(duration=datetime.timedelta(minutes=10))
 
     @skipUnlessDBFeature(
+        "supports_column_check_constraints",
+        "can_introspect_check_constraints",
+        "supports_json_field",
+    )
+    @isolate_apps("schema")
+    def test_check_constraint_exact_jsonfield(self):
+        class JSONConstraintModel(Model):
+            data = JSONField()
+
+            class Meta:
+                app_label = "schema"
+
+        with connection.schema_editor() as editor:
+            editor.create_model(JSONConstraintModel)
+        self.isolated_local_models = [JSONConstraintModel]
+        constraint_name = "check_only_stable_version"
+        constraint = CheckConstraint(
+            condition=Q(data__version="stable"),
+            name=constraint_name,
+        )
+        JSONConstraintModel._meta.constraints = [constraint]
+        with connection.schema_editor() as editor:
+            editor.add_constraint(JSONConstraintModel, constraint)
+        constraints = self.get_constraints(JSONConstraintModel._meta.db_table)
+        self.assertIn(constraint_name, constraints)
+        with self.assertRaises(IntegrityError), atomic():
+            JSONConstraintModel.objects.create(
+                data={"release": "5.0.2dev", "version": "dev"}
+            )
+        JSONConstraintModel.objects.create(
+            data={"release": "5.0.3", "version": "stable"}
+        )
+
+    @skipUnlessDBFeature(
         "supports_column_check_constraints", "can_introspect_check_constraints"
     )
     def test_remove_field_check_does_not_remove_meta_constraints(self):
@@ -2734,7 +2887,7 @@ class SchemaTests(TransactionTestCase):
             editor.create_model(Author)
         # Add the custom check constraint
         constraint = CheckConstraint(
-            check=Q(height__gte=0), name="author_height_gte_0_check"
+            condition=Q(height__gte=0), name="author_height_gte_0_check"
         )
         custom_constraint_name = constraint.name
         Author._meta.constraints = [constraint]
@@ -2939,9 +3092,11 @@ class SchemaTests(TransactionTestCase):
         )
         # Redundant foreign key index is not added.
         self.assertEqual(
-            len(old_constraints) - 1
-            if connection.features.supports_partial_indexes
-            else len(old_constraints),
+            (
+                len(old_constraints) - 1
+                if connection.features.supports_partial_indexes
+                else len(old_constraints)
+            ),
             len(new_constraints),
         )
 
@@ -3143,7 +3298,9 @@ class SchemaTests(TransactionTestCase):
         "supports_column_check_constraints", "can_introspect_check_constraints"
     )
     def test_composed_check_constraint_with_fk(self):
-        constraint = CheckConstraint(check=Q(author__gt=0), name="book_author_check")
+        constraint = CheckConstraint(
+            condition=Q(author__gt=0), name="book_author_check"
+        )
         self._test_composed_constraint_with_fk(constraint)
 
     @skipUnlessDBFeature("allows_multiple_constraints_on_same_fields")
@@ -3468,7 +3625,7 @@ class SchemaTests(TransactionTestCase):
                 editor.add_constraint(Author, constraint)
 
     @skipUnlessDBFeature("supports_nulls_distinct_unique_constraints")
-    def test_unique_constraint_nulls_distinct(self):
+    def test_unique_constraint_index_nulls_distinct(self):
         with connection.schema_editor() as editor:
             editor.create_model(Author)
         nulls_distinct = UniqueConstraint(
@@ -3490,6 +3647,61 @@ class SchemaTests(TransactionTestCase):
         constraints = self.get_constraints(Author._meta.db_table)
         self.assertNotIn(nulls_distinct.name, constraints)
         self.assertNotIn(nulls_not_distinct.name, constraints)
+
+    @skipUnlessDBFeature("supports_nulls_distinct_unique_constraints")
+    def test_unique_constraint_nulls_distinct(self):
+        with connection.schema_editor() as editor:
+            editor.create_model(Author)
+        constraint = UniqueConstraint(
+            fields=["height", "weight"], name="constraint", nulls_distinct=False
+        )
+        with connection.schema_editor() as editor:
+            editor.add_constraint(Author, constraint)
+        Author.objects.create(name="", height=None, weight=None)
+        Author.objects.create(name="", height=1, weight=None)
+        Author.objects.create(name="", height=None, weight=1)
+        with self.assertRaises(IntegrityError):
+            Author.objects.create(name="", height=None, weight=None)
+        with self.assertRaises(IntegrityError):
+            Author.objects.create(name="", height=1, weight=None)
+        with self.assertRaises(IntegrityError):
+            Author.objects.create(name="", height=None, weight=1)
+        with connection.schema_editor() as editor:
+            editor.remove_constraint(Author, constraint)
+        constraints = self.get_constraints(Author._meta.db_table)
+        self.assertNotIn(constraint.name, constraints)
+
+    @skipUnlessDBFeature(
+        "supports_nulls_distinct_unique_constraints",
+        "supports_partial_indexes",
+    )
+    def test_unique_constraint_nulls_distinct_condition(self):
+        with connection.schema_editor() as editor:
+            editor.create_model(Author)
+        constraint = UniqueConstraint(
+            fields=["height", "weight"],
+            name="un_height_weight_start_A",
+            condition=Q(name__startswith="A"),
+            nulls_distinct=False,
+        )
+        with connection.schema_editor() as editor:
+            editor.add_constraint(Author, constraint)
+        Author.objects.create(name="Adam", height=None, weight=None)
+        Author.objects.create(name="Avocado", height=1, weight=None)
+        Author.objects.create(name="Adrian", height=None, weight=1)
+        with self.assertRaises(IntegrityError):
+            Author.objects.create(name="Alex", height=None, weight=None)
+        Author.objects.create(name="Bob", height=None, weight=None)
+        with self.assertRaises(IntegrityError):
+            Author.objects.create(name="Alex", height=1, weight=None)
+        Author.objects.create(name="Bill", height=None, weight=None)
+        with self.assertRaises(IntegrityError):
+            Author.objects.create(name="Alex", height=None, weight=1)
+        Author.objects.create(name="Celine", height=None, weight=1)
+        with connection.schema_editor() as editor:
+            editor.remove_constraint(Author, constraint)
+        constraints = self.get_constraints(Author._meta.db_table)
+        self.assertNotIn(constraint.name, constraints)
 
     @skipIfDBFeature("supports_nulls_distinct_unique_constraints")
     def test_unique_constraint_nulls_distinct_unsupported(self):
@@ -4740,6 +4952,23 @@ class SchemaTests(TransactionTestCase):
             self.get_table_comment(ModelWithDbTableComment._meta.db_table),
             [None, ""],
         )
+
+    @isolate_apps("schema")
+    @skipIfDBFeature("supports_comments")
+    def test_db_comment_table_unsupported(self):
+        class ModelWithDbTableComment(Model):
+            class Meta:
+                app_label = "schema"
+                db_table_comment = "Custom table comment"
+
+        # Table comments are ignored on databases that don't support them.
+        with connection.schema_editor() as editor, self.assertNumQueries(1):
+            editor.create_model(ModelWithDbTableComment)
+        self.isolated_local_models = [ModelWithDbTableComment]
+        with connection.schema_editor() as editor, self.assertNumQueries(0):
+            editor.alter_db_table_comment(
+                ModelWithDbTableComment, "Custom table comment", "New table comment"
+            )
 
     @isolate_apps("schema")
     @skipUnlessDBFeature("supports_comments", "supports_foreign_keys")

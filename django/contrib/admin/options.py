@@ -467,7 +467,8 @@ class BaseModelAdmin(metaclass=forms.MediaDefiningClass):
 
         relation_parts = []
         prev_field = None
-        for part in lookup.split(LOOKUP_SEP):
+        parts = lookup.split(LOOKUP_SEP)
+        for part in parts:
             try:
                 field = model._meta.get_field(part)
             except FieldDoesNotExist:
@@ -482,6 +483,7 @@ class BaseModelAdmin(metaclass=forms.MediaDefiningClass):
                     model._meta.auto_field is None
                     or part not in getattr(prev_field, "to_fields", [])
                 )
+                and (field.is_relation or not field.primary_key)
             ):
                 relation_parts.append(part)
             if not getattr(field, "path_infos", None):
@@ -1031,7 +1033,10 @@ class ModelAdmin(BaseModelAdmin):
 
     @staticmethod
     def _get_action_description(func, name):
-        return getattr(func, "short_description", capfirst(name.replace("_", " ")))
+        try:
+            return func.short_description
+        except AttributeError:
+            return capfirst(name.replace("_", " "))
 
     def _get_base_actions(self):
         """Return the list of actions, prior to any request-based filtering."""
@@ -1758,9 +1763,9 @@ class ModelAdmin(BaseModelAdmin):
                 has_delete_permission = inline.has_delete_permission(request, obj)
             else:
                 # Disable all edit-permissions, and override formset settings.
-                has_add_permission = (
-                    has_change_permission
-                ) = has_delete_permission = False
+                has_add_permission = has_change_permission = has_delete_permission = (
+                    False
+                )
                 formset.extra = formset.max_num = 0
             has_view_permission = inline.has_view_permission(request, obj)
             prepopulated = dict(inline.get_prepopulated_fields(request, obj))
@@ -1895,9 +1900,11 @@ class ModelAdmin(BaseModelAdmin):
             form,
             list(fieldsets),
             # Clear prepopulated fields on a view-only form to avoid a crash.
-            self.get_prepopulated_fields(request, obj)
-            if add or self.has_change_permission(request, obj)
-            else {},
+            (
+                self.get_prepopulated_fields(request, obj)
+                if add or self.has_change_permission(request, obj)
+                else {}
+            ),
             readonly_fields,
             model_admin=self,
         )

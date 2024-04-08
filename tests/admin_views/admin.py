@@ -33,6 +33,8 @@ from .models import (
     Book,
     Bookmark,
     Box,
+    CamelCaseModel,
+    CamelCaseRelatedModel,
     Category,
     Chapter,
     ChapterXtra1,
@@ -1187,6 +1189,10 @@ class SquareAdmin(admin.ModelAdmin):
     readonly_fields = ("area",)
 
 
+class CamelCaseAdmin(admin.ModelAdmin):
+    filter_horizontal = ["m2m"]
+
+
 site = admin.AdminSite(name="admin")
 site.site_url = "/my-site-url/"
 site.register(Article, ArticleAdmin)
@@ -1313,6 +1319,8 @@ site.register(Traveler, TravelerAdmin)
 site.register(Transitionstate)
 site.register(Transition, TransitionAdmin)
 site.register(Square, SquareAdmin)
+site.register(CamelCaseModel)
+site.register(CamelCaseRelatedModel, CamelCaseAdmin)
 
 # Register core models we need in our tests
 site.register(User, UserAdmin)
