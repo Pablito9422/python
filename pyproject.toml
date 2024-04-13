@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=46.4.0"]
+requires = ["setuptools>=61.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -9,7 +9,7 @@ requires-python = ">= 3.10"
 dependencies = [
     "asgiref>=3.7.0",
     "sqlparse>=0.3.1",
-    "tzdata; os_name == 'nt'",
+    "tzdata; sys_platform == 'win32'",
 ]
 authors = [
   {name = "Django Software Foundation", email = "foundation@djangoproject.com"},
@@ -41,6 +41,9 @@ classifiers = [
 argon2 = ["argon2-cffi>=19.1.0"]
 bcrypt = ["bcrypt"]
 
+[project.scripts]
+django-admin = "django.core.management:execute_from_command_line"
+
 [project.urls]
 Homepage = "https://www.djangoproject.com/"
 Documentation = "https://docs.djangoproject.com/"
@@ -48,15 +51,6 @@ Documentation = "https://docs.djangoproject.com/"
 Funding = "https://www.djangoproject.com/fundraising/"
 Source = "https://github.com/django/django"
 Tracker = "https://code.djangoproject.com/"
-
-[project.scripts]
-django-admin = "django.core.management:execute_from_command_line"
-
-[tool.setuptools.dynamic]
-version = {attr = "django.__version__"}
-
-[tool.setuptools.packages]
-find = {}
 
 [tool.black]
 target-version = ["py310"]
@@ -66,3 +60,6 @@ force-exclude = "tests/test_runner_apps/tagged/tests_syntax_error.py"
 profile = "black"
 default_section = "THIRDPARTY"
 known_first_party = "django"
+
+[tool.setuptools.dynamic]
+version = {attr = "django.__version__"}
