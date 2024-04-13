@@ -63,3 +63,6 @@ known_first_party = "django"
 
 [tool.setuptools.dynamic]
 version = {attr = "django.__version__"}
+
+[tool.setuptools.packages]
+find = {}
