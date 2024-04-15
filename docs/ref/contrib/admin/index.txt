@@ -417,7 +417,7 @@ subclass::
         Example::
 
             {
-                "classes": ["wide", "extrapretty"],
+                "classes": ["wide"],
             }
 
         Two useful classes defined by the default admin site stylesheet are
