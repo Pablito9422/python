@@ -101,7 +101,14 @@ def get_path_and_line(module, fullname):
     if path.name != "__init__.py":
         # Look in parent module
         module = module.rsplit(".", maxsplit=1)[0]
-    imported_module = importlib.util.resolve_name(name=imported_path, package=module)
+    try:
+        imported_module = importlib.util.resolve_name(
+            name=imported_path, package=module
+        )
+    except ImportError as error:
+        raise ImportError(
+            f"Could not import '{imported_path}' in '{module}'."
+        ) from error
     try:
         return get_path_and_line(module=imported_module, fullname=fullname)
     except CodeNotFound:

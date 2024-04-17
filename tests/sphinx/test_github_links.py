@@ -202,3 +202,10 @@ class I:
             "https://github.com/django/django/blob/stable/2.2.x/tests/sphinx/"
             "testdata/package/module.py#L12",
         )
+
+    def test_import_error(self):
+        msg = "Could not import '.....test' in 'tests.sphinx.testdata.package'."
+        with self.assertRaisesMessage(ImportError, msg):
+            github_links.get_path_and_line(
+                module="tests.sphinx.testdata.package.import_error", fullname="Test"
+            )
