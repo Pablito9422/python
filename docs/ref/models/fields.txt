@@ -808,6 +808,14 @@ Any combination of these options will result in an error.
     instead of a ``DateField`` and deciding how to handle the conversion from
     datetime to date at display time.
 
+.. warning::
+
+    A ``datetime.datetime`` instance used with :class:`DateField` will first be
+    converted to a ``datetime.date`` instance, which will remove its time
+    component. If :setting:`USE_TZ` is ``True``, the ``datetime.datetime``
+    instance will first be localized to the time zone in the
+    :setting:`TIME_ZONE` setting.
+
 ``DateTimeField``
 -----------------
 
@@ -822,10 +830,13 @@ The default form widget for this field is a single
 
 .. warning::
 
-    ``datetime.date`` instances used with :class:`DateTimeField` will use
-    midnight as their time component. This is true for both storage and
-    comparison. To compare the date portion of a :class:`DateTimeField` with a
-    ``datetime.date`` instance, use the :lookup:`date` lookup.
+    Always use :class:`DateTimeField` with a ``datetime.datetime`` instance. If
+    you have a ``datetime.date`` instance, it's recommended to convert it to a
+    ``datetime.datetime`` first. If you don't, :class:`DateTimeField` will use
+    midnight in :setting:`TIME_ZONE` for the time component. This is true for
+    both storage and comparison. To compare the date portion of a
+    :class:`DateTimeField` with a ``datetime.date`` instance, use the
+    :lookup:`date` lookup.
 
 ``DecimalField``
 ----------------
