@@ -1838,7 +1838,7 @@ A list of IP addresses, as strings, that:
 
 Default: ``'en-us'``
 
-A string representing the fallback language code for this installation.
+A string representing the language code for this installation.
 This should be in standard :term:`language ID format <language code>`.
 For example, U.S. English is ``"en-us"``. See also the
 `list of language identifiers`_ and :doc:`/topics/i18n/index`.
@@ -1852,7 +1852,8 @@ It serves three purposes:
   website. It also provides the fallback translation when a translation for a
   given literal doesn't exist for the user's preferred language.
 * If localization is explicitly disabled via the :tfilter:`localize` and
-  :tfilter:`unlocalize` template filters or tags. see
+  :tfilter:`unlocalize` template filters or tags, it provides fallback
+  localization formats which will be applied instead. see
   :ref:`controlling localization in templates <topic-l10n-templates>`.
 
 See :ref:`how-django-discovers-language-preference` for more details.
@@ -3666,6 +3667,9 @@ Forms
 -----
 * :setting:`FORM_RENDERER`
 * :setting:`FORMS_URLFIELD_ASSUME_HTTPS`
+
+
+.. _globalization-settings:
 
 Globalization (``i18n``/``l10n``)
 ---------------------------------
