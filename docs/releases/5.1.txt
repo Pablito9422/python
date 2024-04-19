@@ -113,6 +113,7 @@ Minor features
   ignored).
 
 * Added GDAL support curved geometries ``CurvePolygon``, ``CompoundCurve``,
+* Added GDAL support for curved geometries ``CurvePolygon``, ``CompoundCurve``,
   ``CircularString``, ``MultiSurface``, and ``MultiCurve`` via the new
   :attr:`.OGRGeometry.has_curve` property, and the
   :meth:`.OGRGeometry.get_linear_geometry` and
