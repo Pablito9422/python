@@ -808,11 +808,14 @@ Any combination of these options will result in an error.
     instead of a ``DateField`` and deciding how to handle the conversion from
     datetime to date at display time.
 
-.. warning::
+.. warning:: Always use :class:`DateField` with a ``datetime.date`` instance.
 
-    A ``datetime.datetime`` instance used with :class:`DateField` will be
-    localized to the :ref:`default timezone <default-current-time-zone>` and
-    converted to a ``datetime.date`` instance, removing its time component.
+    If you have a ``datetime.datetime`` instance, it's recommended to convert
+    it to a ``datetime.date`` first. If you don't, :class:`DateField` will
+    localize the ``datetime.datetime`` to the :ref:`default timezone
+    <default-current-time-zone>` and convert it to a ``datetime.date``
+    instance, removing its time component. This is true for both storage and
+    comparison.
 
 ``DateTimeField``
 -----------------
