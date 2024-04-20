@@ -373,7 +373,7 @@ to, or in lieu of custom ``field.clean()`` methods.
 
 
 ``DomainNameValidator``
-----------------
+-----------------------
 
 .. class:: DomainNameValidator(schemes=None, regex=None, message=None, code=None, is_idna=True)
 
@@ -393,7 +393,7 @@ to, or in lieu of custom ``field.clean()`` methods.
 
 
 ``validate_domain_name``
-------------------
+------------------------
 
 .. data:: validate_domain_name
 
