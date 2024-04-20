@@ -398,12 +398,3 @@ to, or in lieu of custom ``field.clean()`` methods.
 .. data:: validate_domain_name
 
     An :class:`DomainNameValidator` instance without any customizations.
-
-
-
-``validate_email``
-------------------
-
-.. data:: validate_email
-
-    An :class:`EmailValidator` instance without any customizations.
