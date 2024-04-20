@@ -375,7 +375,7 @@ to, or in lieu of custom ``field.clean()`` methods.
 ``DomainNameValidator``
 ----------------
 
-.. class:: DomainNameValidator(schemes=None, regex=None, message=None, code=None, is_idna=)
+.. class:: DomainNameValidator(schemes=None, regex=None, message=None, code=None, is_idna=True)
 
     A :class:`RegexValidator` subclass that ensures a value looks like a domain name. Values longer than
     255 characters are always considered invalid.
