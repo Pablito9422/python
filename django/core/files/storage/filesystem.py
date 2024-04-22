@@ -1,10 +1,13 @@
 import os
+import pathlib
 from datetime import datetime, timezone
 from urllib.parse import urljoin
 
 from django.conf import settings
+from django.core.exceptions import SuspiciousFileOperation
 from django.core.files import File, locks
 from django.core.files.move import file_move_safe
+from django.core.files.utils import validate_file_name
 from django.core.signals import setting_changed
 from django.utils._os import safe_join
 from django.utils.deconstruct import deconstructible
@@ -21,19 +24,19 @@ class FileSystemStorage(Storage, StorageSettingsMixin):
     Standard filesystem storage
     """
 
-    ALLOW_OVERWRITE = False
-
     def __init__(
         self,
         location=None,
         base_url=None,
         file_permissions_mode=None,
         directory_permissions_mode=None,
+        allow_overwrite=False,
     ):
         self._location = location
         self._base_url = base_url
         self._file_permissions_mode = file_permissions_mode
         self._directory_permissions_mode = directory_permissions_mode
+        self._allow_overwrite = allow_overwrite
         setting_changed.connect(self._clear_cached_properties)
 
     @cached_property
@@ -61,6 +64,19 @@ class FileSystemStorage(Storage, StorageSettingsMixin):
         return self._value_or_setting(
             self._directory_permissions_mode, settings.FILE_UPLOAD_DIRECTORY_PERMISSIONS
         )
+
+    def get_available_name(self, name, max_length=None):
+        if self._allow_overwrite:
+            name = str(name).replace("\\", "/")
+            dir_name, file_name = os.path.split(name)
+            if ".." in pathlib.PurePath(dir_name).parts:
+                raise SuspiciousFileOperation(
+                    "Detected path traversal attempt in '%s'" % dir_name
+                )
+            validate_file_name(file_name)
+            return name
+        else:
+            return super().get_available_name(name, max_length)
 
     def _open(self, name, mode="rb"):
         return File(open(self.path(name), mode))
@@ -99,13 +115,13 @@ class FileSystemStorage(Storage, StorageSettingsMixin):
                     file_move_safe(
                         content.temporary_file_path(),
                         full_path,
-                        allow_overwrite=self.ALLOW_OVERWRITE,
+                        allow_overwrite=self._allow_overwrite,
                     )
 
                 # This is a normal uploadedfile that we can stream.
                 else:
                     open_flags = os.O_WRONLY | os.O_CREAT | getattr(os, "O_BINARY", 0)
-                    if not self.ALLOW_OVERWRITE:
+                    if not self._allow_overwrite:
                         open_flags |= os.O_EXCL
                     fd = os.open(full_path, open_flags, 0o666)
                     _file = None

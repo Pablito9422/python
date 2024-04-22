@@ -607,21 +607,15 @@ class CustomStorageTests(FileStorageTests):
         self.storage.delete(second)
 
 
-class OverwritingStorage(FileSystemStorage):
-    """
-    Overwrite existing files instead of appending a suffix to generate an
-    unused name.
-    """
-
-    ALLOW_OVERWRITE = True
-
-    def get_available_name(self, name, max_length=None):
-        """Override the effort to find an used name."""
-        return name
-
-
 class OverwritingStorageTests(FileStorageTests):
-    storage_class = OverwritingStorage
+    storage_class = FileSystemStorage
+
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.temp_dir)
+        self.storage = self.storage_class(
+            location=self.temp_dir, base_url="/test_media_url/", allow_overwrite=True
+        )
 
     def test_save_overwrite_behavior(self):
         """Saving to same file name twice overwrites the first file."""
