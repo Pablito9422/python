@@ -456,6 +456,10 @@ Miscellaneous
 * The ``check`` keyword argument of ``CheckConstraint`` is deprecated in favor
   of ``condition``.
 
+* The ``OS_OPEN_FLAGS`` property of ``FileSystemStorage`` has been deprecated.
+  To allow overwriting files in storage, set the new ``allow_overwrite`` option
+  to ``True`` instead.
+
 Features removed in 5.1
 =======================
 
