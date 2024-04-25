@@ -24,6 +24,10 @@ class FileSystemStorage(Storage, StorageSettingsMixin):
     Standard filesystem storage
     """
 
+    # The combination of O_CREAT and O_EXCL makes os.open() raise OSError if
+    # the file already exists before it's opened.
+    OS_OPEN_FLAGS = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0)
+
     def __init__(
         self,
         location=None,
@@ -120,9 +124,11 @@ class FileSystemStorage(Storage, StorageSettingsMixin):
 
                 # This is a normal uploadedfile that we can stream.
                 else:
-                    open_flags = os.O_WRONLY | os.O_CREAT | getattr(os, "O_BINARY", 0)
-                    if not self._allow_overwrite:
-                        open_flags |= os.O_EXCL
+                    default_open_flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0)
+                    if default_open_flags == self.OS_OPEN_FLAGS and self._allow_overwrite:
+                        open_flags = default_open_flags & ~os.O_EXCL
+                    else:
+                        open_flags = self.OS_OPEN_FLAGS
                     fd = os.open(full_path, open_flags, 0o666)
                     _file = None
                     try:
