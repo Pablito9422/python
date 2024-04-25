@@ -124,8 +124,16 @@ class FileSystemStorage(Storage, StorageSettingsMixin):
 
                 # This is a normal uploadedfile that we can stream.
                 else:
-                    default_open_flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0)
-                    if default_open_flags == self.OS_OPEN_FLAGS and self._allow_overwrite:
+                    default_open_flags = (
+                        os.O_WRONLY
+                        | os.O_CREAT
+                        | os.O_EXCL
+                        | getattr(os, "O_BINARY", 0)
+                    )
+                    if (
+                        default_open_flags == self.OS_OPEN_FLAGS
+                        and self._allow_overwrite
+                    ):
                         open_flags = default_open_flags & ~os.O_EXCL
                     else:
                         open_flags = self.OS_OPEN_FLAGS
