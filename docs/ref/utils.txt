@@ -331,6 +331,28 @@ https://web.archive.org/web/20110718035220/http://diveintomark.org/archives/2004
 
     See https://web.archive.org/web/20110514113830/http://diveintomark.org/archives/2004/05/28/howto-atom-id
 
+``Stylesheet``
+--------------
+
+.. versionadded:: 5.1
+
+.. class:: Stylesheet
+
+    Represents an RSS stylesheet
+
+    .. method:: __init__(url, mimetype, media="screen")
+
+        ``url`` is the URL of the stylesheet. This argument is required.
+
+        ``mimetype`` is the MIME type of the stylesheet. This argument is
+        optional. If not provided, Django will attempt to guess it by using
+        Python's :py:func:`mimetypes.guess_type()`. Use ``mimetype=None`` if you don't
+        want your stylesheet to have a MIME type specified.
+
+        ``media`` will be used as the ``media`` attribute of the stylesheet.
+        Django uses ``media="screen"`` by default. Use ``media=None`` if you
+        don't want your stylesheet to have a ``media`` attribute.
+
 ``SyndicationFeed``
 -------------------
 
@@ -339,7 +361,7 @@ https://web.archive.org/web/20110718035220/http://diveintomark.org/archives/2004
     Base class for all syndication feeds. Subclasses should provide
     ``write()``.
 
-    .. method:: __init__(title, link, description, language=None, author_email=None, author_name=None, author_link=None, subtitle=None, categories=None, feed_url=None, feed_copyright=None, feed_guid=None, ttl=None, **kwargs)
+    .. method:: __init__(title, link, description, language=None, author_email=None, author_name=None, author_link=None, subtitle=None, categories=None, feed_url=None, feed_copyright=None, feed_guid=None, ttl=None, stylesheet=None, **kwargs)
 
         Initialize the feed with the given dictionary of metadata, which applies
         to the entire feed.
@@ -348,7 +370,12 @@ https://web.archive.org/web/20110718035220/http://diveintomark.org/archives/2004
         ``self.feed``.
 
         All parameters should be strings, except ``categories``, which should
-        be a sequence of strings.
+        be a sequence of strings. The ``stylesheet`` argument can be a string
+        or an instance of :class:`Stylesheet`.
+
+        .. versionadded:: 5.1
+
+            The ``stylesheet`` argument was added.
 
     .. method:: add_item(title, link, description, author_email=None, author_name=None, author_link=None, pubdate=None, comments=None, unique_id=None, categories=(), item_copyright=None, ttl=None, updateddate=None, enclosures=None, **kwargs)
 
@@ -366,6 +393,13 @@ https://web.archive.org/web/20110718035220/http://diveintomark.org/archives/2004
     .. method:: add_root_elements(handler)
 
         Add elements in the root (i.e. feed/channel) element.
+        Called from ``write()``.
+
+    .. method:: add_stylesheets(self, handler)
+
+        .. versionadded:: 5.1
+
+        Add stylesheet information to the document.
         Called from ``write()``.
 
     .. method:: item_attributes(item)

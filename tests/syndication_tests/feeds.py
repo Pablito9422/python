@@ -236,6 +236,10 @@ class TestGetObjectFeed(TestRss2Feed):
         return "Title: %s" % item.title
 
 
+class TestFeedWithStylesheet(TestRss2Feed):
+    stylesheet = "/stylesheet.xsl"
+
+
 class NaiveDatesFeed(TestAtomFeed):
     """
     A feed with naive (non-timezone-aware) dates.
