@@ -4,6 +4,10 @@ import pathlib
 from django.core.exceptions import SuspiciousFileOperation
 
 
+class EmptyName:
+    pass
+
+
 def validate_file_name(name, allow_relative_path=False):
     # Remove potentially dangerous names
     if os.path.basename(name) in {"", ".", ".."}:

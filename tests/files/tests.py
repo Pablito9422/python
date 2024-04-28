@@ -18,6 +18,7 @@ from django.core.files.uploadedfile import (
     TemporaryUploadedFile,
     UploadedFile,
 )
+from django.core.files.utils import EmptyName
 from django.test import override_settings
 
 try:
@@ -236,7 +237,7 @@ class NoNameFileTestCase(unittest.TestCase):
 
 class ContentFileTestCase(unittest.TestCase):
     def test_content_file_default_name(self):
-        self.assertIsNone(ContentFile(b"content").name)
+        self.assertTrue(isinstance(ContentFile(b"content").name, EmptyName))
 
     def test_content_file_custom_name(self):
         """

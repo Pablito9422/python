@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from django.core.exceptions import SuspiciousFileOperation
+from django.core.exceptions import FieldError, SuspiciousFileOperation
 from django.core.files import File, temp
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import TemporaryUploadedFile
@@ -71,6 +71,13 @@ class FileFieldTests(TestCase):
             msg = f"Detected path traversal attempt in '{tmp.name}'"
             with self.assertRaisesMessage(SuspiciousFileOperation, msg):
                 document.save()
+
+    def test_save_content_file_without_name(self):
+        d = Document()
+        d.myfile = ContentFile(b"")
+        msg = "File name cannot be empty."
+        with self.assertRaisesMessage(FieldError, msg):
+            d.save()
 
     def test_defer(self):
         Document.objects.create(myfile="something.txt")

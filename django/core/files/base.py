@@ -1,7 +1,7 @@
 import os
 from io import BytesIO, StringIO, UnsupportedOperation
 
-from django.core.files.utils import FileProxyMixin
+from django.core.files.utils import EmptyName, FileProxyMixin
 from django.utils.functional import cached_property
 
 
@@ -124,6 +124,8 @@ class ContentFile(File):
     """
 
     def __init__(self, content, name=None):
+        if name is None:
+            name = EmptyName()
         stream_class = StringIO if isinstance(content, str) else BytesIO
         super().__init__(stream_class(content), name=name)
         self.size = len(content)
