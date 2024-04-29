@@ -79,6 +79,8 @@ details on these changes.
 
 * The ``check`` keyword argument of ``CheckConstraint`` will be removed.
 
+* The ``OS_OPEN_FLAGS`` attribute of ``FileSystemStorage`` will be removed.
+
 .. _deprecation-removed-in-5.1:
 
 5.1
