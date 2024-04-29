@@ -204,7 +204,8 @@ Error Reporting
 File Storage
 ~~~~~~~~~~~~
 
-* ...
+* The ``allow_overwrite`` parameter has been added to ``FileSystemStorage``,
+  to allow saving new files over existing ones.
 
 File Uploads
 ~~~~~~~~~~~~
