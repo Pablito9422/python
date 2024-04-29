@@ -1,10 +1,9 @@
 {% load i18n %}
-<fieldset class="module aligned {{ fieldset.classes }}">
+<fieldset class="module aligned {{ fieldset.classes }}" {% if fieldset.name %}aria-labelledby="{{ fieldset.heading_id }}"{% endif %}>
     {% if fieldset.name %}
-        <legend><h3>{{ fieldset.name }}</h3></legend>
-    {% endif %}
-    {% if fieldset.is_collapsible %}
-        <details><summary>{% translate "Fields" context "form fields" %}</summary>
+        {% if fieldset.is_collapsible %}<details><summary>{% endif %}
+        <h{{ heading_level|default:3 }} id="{{ fieldset.heading_id }}" class="fieldset-heading">{{ fieldset.name }}</h{{ heading_level|default:3 }}>
+        {% if fieldset.is_collapsible %}</summary>{% endif %}
     {% endif %}
     {% if fieldset.description %}
         <div class="description">{{ fieldset.description|safe }}</div>
@@ -37,7 +36,5 @@
             {% if not line.fields|length == 1 %}</div>{% endif %}
         </div>
     {% endfor %}
-    {% if fieldset.is_collapsible %}
-        </details>
-    {% endif %}
+    {% if fieldset.is_collapsible and fieldset.name %}</details>{% endif %}
 </fieldset>

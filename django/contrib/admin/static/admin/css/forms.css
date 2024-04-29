@@ -78,12 +78,9 @@ form ul.inline li {
 
 /* FIELDSETS */
 
-fieldset legend {
-    inline-size: 100%;
-    padding: 0;
-}
-
-fieldset h3 {
+fieldset .fieldset-heading,
+fieldset .inline-heading,
+:not(.inline-related) .collapse summary {
     border: 1px solid var(--header-bg);
     margin: 0;
     padding: 8px;
@@ -228,15 +225,18 @@ form div.help ul {
 
 /* COLLAPSIBLE FIELDSETS */
 
-.collapse details {
-    border: 1px solid var(--hairline-color);
-    border-top: none;
-    font-size: 0.8125rem;
-    padding: 10px;
+.collapse summary .fieldset-heading,
+.collapse summary .inline-heading {
+    background: transparent;
+    border: none;
+    color: currentColor;
+    display: inline;
+    margin: 0;
+    padding: 0;
 }
 
-.collapse details[open] summary {
-    padding-bottom: 10px;
+.collapse details .description {
+    padding-top: 10px;
 }
 
 .collapse .form-row:last-child {
@@ -392,7 +392,8 @@ body.popup .submit-row {
     position: relative;
 }
 
-.inline-related h3 {
+.inline-related h4,
+.inline-related:not(.tabular) .collapse summary {
     margin: 0;
     color: var(--body-quiet-color);
     padding: 5px;
