@@ -60,7 +60,7 @@ The ``FileSystemStorage`` class
         Flag to control allowing saving a new file over an existing one.
         Defaults to ``False``.
 
-        .. versionadded:: 5.1
+    .. versionadded:: 5.1
 
     .. note::
 

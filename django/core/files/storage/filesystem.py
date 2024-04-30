@@ -26,6 +26,9 @@ class FileSystemStorage(Storage, StorageSettingsMixin):
     Standard filesystem storage
     """
 
+    # RemovedInDjango60Warning: when the deprecation ends, all uses of
+    # OS_OPEN_FLAGS in this class should be removed, except the flags needed
+    # inside the _save() method.
     # The combination of O_CREAT and O_EXCL makes os.open() raise OSError if
     # the file already exists before it's opened.
     OS_OPEN_FLAGS = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0)
