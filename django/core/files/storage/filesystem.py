@@ -1,8 +1,8 @@
 import os
 import pathlib
+import warnings
 from datetime import datetime, timezone
 from urllib.parse import urljoin
-import warnings
 
 from django.conf import settings
 from django.core.exceptions import SuspiciousFileOperation
