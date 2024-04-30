@@ -25,11 +25,18 @@ from django.core.files.uploadedfile import (
 )
 from django.db.models import FileField
 from django.db.models.fields.files import FileDescriptor
-from django.test import LiveServerTestCase, SimpleTestCase, TestCase, override_settings
+from django.test import (
+    LiveServerTestCase,
+    SimpleTestCase,
+    TestCase,
+    ignore_warnings,
+    override_settings,
+)
 from django.test.utils import requires_tz_support
 from django.urls import NoReverseMatch, reverse_lazy
 from django.utils import timezone
 from django.utils._os import symlinks_supported
+from django.utils.deprecation import RemovedInDjango60Warning
 
 from .models import (
     Storage,
@@ -621,6 +628,23 @@ class OverwritingStorage(FileSystemStorage):
         return name
 
 
+class OverwritingStorageOSOpenFlagsWarningTests(SimpleTestCase):
+    storage_class = OverwritingStorage
+
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.temp_dir)
+
+    def test_os_open_flags_deprecation_warning(self):
+        msg = "Overriding OS_OPEN_FLAGS is deprecated. Use the allow_overwrite "
+        msg += "parameter instead."
+        with self.assertWarnsMessage(RemovedInDjango60Warning, msg):
+            self.storage = self.storage_class(
+                location=self.temp_dir, base_url="/test_media_url/"
+            )
+
+
+@ignore_warnings(category=RemovedInDjango60Warning)
 class OverwritingStorageOSOpenFlagsTests(FileStorageTests):
     storage_class = OverwritingStorage
 

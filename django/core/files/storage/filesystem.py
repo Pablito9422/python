@@ -2,6 +2,7 @@ import os
 import pathlib
 from datetime import datetime, timezone
 from urllib.parse import urljoin
+import warnings
 
 from django.conf import settings
 from django.core.exceptions import SuspiciousFileOperation
@@ -11,6 +12,7 @@ from django.core.files.utils import validate_file_name
 from django.core.signals import setting_changed
 from django.utils._os import safe_join
 from django.utils.deconstruct import deconstructible
+from django.utils.deprecation import RemovedInDjango60Warning
 from django.utils.encoding import filepath_to_uri
 from django.utils.functional import cached_property
 
@@ -27,6 +29,9 @@ class FileSystemStorage(Storage, StorageSettingsMixin):
     # The combination of O_CREAT and O_EXCL makes os.open() raise OSError if
     # the file already exists before it's opened.
     OS_OPEN_FLAGS = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0)
+    _default_open_flags = (
+        os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0)
+    )
 
     def __init__(
         self,
@@ -42,6 +47,12 @@ class FileSystemStorage(Storage, StorageSettingsMixin):
         self._directory_permissions_mode = directory_permissions_mode
         self._allow_overwrite = allow_overwrite
         setting_changed.connect(self._clear_cached_properties)
+        if self.OS_OPEN_FLAGS != self._default_open_flags:
+            warnings.warn(
+                "Overriding OS_OPEN_FLAGS is deprecated. Use "
+                "the allow_overwrite parameter instead.",
+                RemovedInDjango60Warning,
+            )
 
     @cached_property
     def base_location(self):
@@ -124,17 +135,11 @@ class FileSystemStorage(Storage, StorageSettingsMixin):
 
                 # This is a normal uploadedfile that we can stream.
                 else:
-                    default_open_flags = (
-                        os.O_WRONLY
-                        | os.O_CREAT
-                        | os.O_EXCL
-                        | getattr(os, "O_BINARY", 0)
-                    )
                     if (
-                        default_open_flags == self.OS_OPEN_FLAGS
+                        self._default_open_flags == self.OS_OPEN_FLAGS
                         and self._allow_overwrite
                     ):
-                        open_flags = default_open_flags & ~os.O_EXCL
+                        open_flags = self._default_open_flags & ~os.O_EXCL
                     else:
                         open_flags = self.OS_OPEN_FLAGS
                     fd = os.open(full_path, open_flags, 0o666)
