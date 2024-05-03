@@ -920,3 +920,28 @@ define :class:`~django.contrib.postgres.constraints.ExclusionConstraint`. See
 docs/current/rangetypes.html#RANGETYPES-INCLUSIVITY>`_.
 
 .. _different bounds: https://www.postgresql.org/docs/current/rangetypes.html#RANGETYPES-IO
+
+``Serial`` fields
+=================
+
+.. versionadded:: 5.1
+
+.. class:: SerialField(**options)
+
+    A field for storing an automatically incremented sequence of integers.
+
+    It's similar to :class:`AutoField <django.db.models.AutoField>`, but it
+    doesn't have to be a primary key.
+
+    It's a 32-bit integer that is is guaranteed to fit numbers from ``1`` to
+    ``2147483647``.
+
+.. class:: BigSerialField(**options)
+
+    A 64-bit integer, much like a :class:`SerialField` except that it is
+    guaranteed to fit numbers from ``1`` to ``9223372036854775807``.
+
+.. class:: SmallSerialField(**options)
+
+    A 16-bit integer, much like a :class:`SerialField` except that it is
+    guaranteed to fit numbers from ``1`` to ``32767``.
