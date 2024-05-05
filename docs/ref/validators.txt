@@ -370,8 +370,11 @@ to, or in lieu of custom ``field.clean()`` methods.
     .. versionchanged:: 5.0
 
         The ``offset`` argument was added.
+
 ``DomainNameValidator``
 -----------------------
+
+.. versionadded:: 5.1
 
 .. class:: DomainNameValidator(schemes=None, regex=None, message=None, code=None, is_idna=True)
 
@@ -386,10 +389,6 @@ to, or in lieu of custom ``field.clean()`` methods.
         This determines whether or not to accept internationalized domain name, that is,
         domain names that contain non-ASCII characters. Default value is true.
         
-
-    .. versionadded:: 5.1
-
-
 ``validate_domain_name``
 ------------------------
 

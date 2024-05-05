@@ -357,8 +357,6 @@ Validators
 * The new :class:`~django.core.validators.DomainNameValidator` validates domain
   names, including internationalized domain names.
 
-* ...
-
 .. _backwards-incompatible-5.1:
 
 Backwards incompatible changes in 5.1
