@@ -79,6 +79,14 @@ class FileFieldTests(TestCase):
         with self.assertRaisesMessage(FieldError, msg):
             d.save()
 
+    def test_delete_content_file(self):
+        d = Document()
+        d.myfile = ContentFile(b"", name="foo")
+        d.save()
+        d.myfile.delete()
+        self.assertIsNone(d.myfile.name)
+        self.assertFalse(d.myfile.storage.exists("foo"))
+
     def test_defer(self):
         Document.objects.create(myfile="something.txt")
         self.assertEqual(Document.objects.defer("myfile")[0].myfile, "something.txt")
