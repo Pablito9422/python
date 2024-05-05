@@ -370,8 +370,6 @@ to, or in lieu of custom ``field.clean()`` methods.
     .. versionchanged:: 5.0
 
         The ``offset`` argument was added.
-
-
 ``DomainNameValidator``
 -----------------------
 
