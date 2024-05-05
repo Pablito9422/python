@@ -7,7 +7,7 @@ from django.core.exceptions import FieldError
 from django.core.files.base import File
 from django.core.files.images import ImageFile
 from django.core.files.storage import Storage, default_storage
-from django.core.files.utils import EmptyName, validate_file_name
+from django.core.files.utils import validate_file_name
 from django.db.models import signals
 from django.db.models.fields import Field
 from django.db.models.query_utils import DeferredAttribute
@@ -313,7 +313,7 @@ class FileField(Field):
 
     def pre_save(self, model_instance, add):
         file = super().pre_save(model_instance, add)
-        if isinstance(file.name, EmptyName):
+        if file.name is None and getattr(file, "_file") is not None:
             raise FieldError("File name cannot be empty.")
         if file and not file._committed:
             # Commit the file to storage prior to saving the model
