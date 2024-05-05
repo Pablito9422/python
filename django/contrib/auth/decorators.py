@@ -48,6 +48,11 @@ def user_passes_test(
                     return await view_func(request, *args, **kwargs)
                 return _redirect_to_login(request)
 
+            # login_url and redirect_field_name attributes are used by
+            # LoginRequiredMiddleware so it redirects accordingly.
+            _view_wrapper.login_url = login_url
+            _view_wrapper.redirect_field_name = redirect_field_name
+
         else:
 
             def _view_wrapper(request, *args, **kwargs):
@@ -59,6 +64,11 @@ def user_passes_test(
                 if test_pass:
                     return view_func(request, *args, **kwargs)
                 return _redirect_to_login(request)
+
+            # login_url and redirect_field_name attributes are used by
+            # LoginRequiredMiddleware so it redirects accordingly.
+            _view_wrapper.login_url = login_url
+            _view_wrapper.redirect_field_name = redirect_field_name
 
         return wraps(view_func)(_view_wrapper)
 
@@ -80,6 +90,15 @@ def login_required(
     if function:
         return actual_decorator(function)
     return actual_decorator
+
+
+def login_not_required(view_func):
+    """
+    Decorator for views that marks that the view is accessible by
+    unauthenticated users.
+    """
+    view_func.login_required = False
+    return view_func
 
 
 def permission_required(perm, login_url=None, raise_exception=False):

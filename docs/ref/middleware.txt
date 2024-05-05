@@ -495,6 +495,30 @@ Adds the ``user`` attribute, representing the currently-logged-in user, to
 every incoming ``HttpRequest`` object. See :ref:`Authentication in web requests
 <auth-web-requests>`.
 
+.. class:: LoginRequiredMiddleware
+
+.. versionadded:: 5.1
+
+Redirects all requests by non-authenticated users to a login page. For admin 
+views, this will redirect to the admin login. For all other views, this will 
+redirect to :setting:`settings.LOGIN_URL <LOGIN_URL>`. This can be customized 
+by setting ``login_url`` or ``redirect_field_name`` attributes on your view.
+
+Here are examples of how you can apply this in both class based and function 
+based views::
+
+    class MyView(View):
+        login_url = "/login/"
+        redirect_field_name = "redirect_to"
+
+
+    @login_required(redirect_field_name="redirect_to", login_url="/login/")
+    def my_view(request): ...
+
+Views using the :func:`~django.contrib.auth.decorators.login_not_required` 
+decorator or the :class:`~django.contrib.auth.mixins.LoginNotRequiredMixin` 
+mixin are exempt from this requirement.
+
 .. class:: RemoteUserMiddleware
 
 Middleware for utilizing web server provided authentication. See
@@ -596,6 +620,12 @@ Here are some hints about the ordering of various Django middleware classes:
 #. :class:`~django.contrib.auth.middleware.AuthenticationMiddleware`
 
    After ``SessionMiddleware``: uses session storage.
+
+#. :class:`~django.contrib.auth.middleware.LoginRequiredMiddleware`
+
+   .. versionadded:: 5.1
+
+   After ``AuthenticationMiddleware``: uses user object.
 
 #. :class:`~django.contrib.messages.middleware.MessageMiddleware`
 

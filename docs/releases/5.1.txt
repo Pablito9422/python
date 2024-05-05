@@ -63,6 +63,12 @@ Minor features
   accessibility of the
   :class:`~django.contrib.auth.forms.UserChangeForm`.
 
+* The :class:`~django.contrib.auth.middleware.LoginRequiredMiddleware` is now
+  available. It forces all views to require login by default. The
+  :class:`~django.contrib.auth.mixins.LoginNotRequiredMixin` mixin and
+  :func:`~django.contrib.auth.decorators.login_not_required` decorator have
+  also been added.
+
 :mod:`django.contrib.contenttypes`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

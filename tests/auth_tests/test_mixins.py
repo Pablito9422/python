@@ -2,6 +2,7 @@ from unittest import mock
 
 from django.contrib.auth import models
 from django.contrib.auth.mixins import (
+    LoginNotRequiredMixin,
     LoginRequiredMixin,
     PermissionRequiredMixin,
     UserPassesTestMixin,
@@ -237,6 +238,16 @@ class LoginRequiredMixinTests(TestCase):
         request.user = self.user
         response = view(request)
         self.assertEqual(response.status_code, 200)
+
+
+class LoginNotRequiredMixinTests(TestCase):
+    def test_mixin_marks_view_as_login_not_required(self):
+        class AView(LoginNotRequiredMixin, View):
+            pass
+
+        view = AView()
+
+        self.assertFalse(view.login_required)
 
 
 class PermissionsRequiredMixinTests(TestCase):

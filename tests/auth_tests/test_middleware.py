@@ -1,8 +1,10 @@
+from django.conf import settings
 from django.contrib.auth.middleware import AuthenticationMiddleware
 from django.contrib.auth.models import User
 from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpRequest, HttpResponse
-from django.test import TestCase
+from django.test import TestCase, modify_settings, override_settings
+from django.urls import reverse
 
 
 class TestAuthenticationMiddleware(TestCase):
@@ -50,3 +52,76 @@ class TestAuthenticationMiddleware(TestCase):
         self.assertEqual(auser, self.user)
         auser_second = await self.request.auser()
         self.assertIs(auser, auser_second)
+
+
+@override_settings(ROOT_URLCONF="auth_tests.urls")
+@modify_settings(
+    MIDDLEWARE={"append": "django.contrib.auth.middleware.LoginRequiredMiddleware"}
+)
+class TestLoginRequiredMiddleware(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User.objects.create_user(
+            "test_user", "test@example.com", "test_password"
+        )
+        cls.paths = [
+            "public_view",
+            "public_function_view",
+            "protected_view",
+            "protected_function_view",
+            "login_required_mixin",
+            "login_required_decorator",
+        ]
+
+    def test_access(self):
+        for path in self.paths:
+            with self.subTest(path=path):
+                response = self.client.get(f"/{path}/")
+                if "public" in path:
+                    self.assertEqual(response.status_code, 200)
+                elif "protected" in path:
+                    self.assertRedirects(
+                        response,
+                        settings.LOGIN_URL + f"?next=/{path}/",
+                        fetch_redirect_response=False,
+                    )
+                elif "login_required" in path:
+                    # Tests views with login_required decorator and mixin
+                    self.assertRedirects(
+                        response,
+                        "/custom_login/" + f"?step=/{path}/",
+                        fetch_redirect_response=False,
+                    )
+
+        admin_url = reverse("admin:index")
+        response = self.client.get(admin_url)
+        self.assertRedirects(
+            response,
+            reverse("admin:login") + f"?next={admin_url}",
+            fetch_redirect_response=False,
+        )
+
+        response = self.client.get("/non_existent/")
+        self.assertEqual(response.status_code, 404)
+
+        self.client.login(username="test_user", password="test_password")
+
+        for path in self.paths:
+            with self.subTest(path=path):
+                response = self.client.get(f"/{path}/")
+                self.assertEqual(response.status_code, 200)
+
+    @modify_settings(
+        MIDDLEWARE={"remove": "django.contrib.auth.middleware.AuthenticationMiddleware"}
+    )
+    def test_no_authentication_middleware(self):
+        msg = (
+            "The Django login required middleware requires authentication "
+            "middleware to be installed. Edit your MIDDLEWARE setting to "
+            "insert "
+            "'django.contrib.auth.middleware.AuthenticationMiddleware' "
+            "before "
+            "'django.contrib.auth.middleware.LoginRequiredMiddleware'."
+        )
+        with self.assertRaisesMessage(ImproperlyConfigured, msg):
+            self.client.get("/public_view/")
