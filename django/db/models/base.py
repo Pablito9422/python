@@ -1519,7 +1519,7 @@ class Model(AltersData, metaclass=ModelBase):
             },
         )
 
-    def unique_error_message(self, model_class, unique_check):
+    def unique_error_message(self, model_class, unique_check, code=None):
         opts = model_class._meta
 
         params = {
@@ -1535,7 +1535,7 @@ class Model(AltersData, metaclass=ModelBase):
             params["field_label"] = capfirst(field.verbose_name)
             return ValidationError(
                 message=field.error_messages["unique"],
-                code="unique",
+                code=code if code is not None else "unique",
                 params=params,
             )
 
@@ -1547,7 +1547,7 @@ class Model(AltersData, metaclass=ModelBase):
             params["field_labels"] = get_text_list(field_labels, _("and"))
             return ValidationError(
                 message=_("%(model_name)s with this %(field_labels)s already exists."),
-                code="unique_together",
+                code=code if code is not None else "unique_together",
                 params=params,
             )
 
