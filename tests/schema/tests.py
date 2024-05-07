@@ -5823,17 +5823,9 @@ class SchemaTests(TransactionTestCase):
 
         self.isolated_local_models = [Foo]
 
-        columns = self.column_classes(Foo)
-        self.assertEqual(len(columns), 2)
-        self.assertEqual(columns["id"][0], "AutoField")
-        self.assertEqual(columns["field"][0], old_field_cls.__name__)
-
-        table = Foo._meta.db_table
-        sequences = self.get_sequences(table)
-        self.assertEqual(len(sequences), 2)
-        self.assertEqual(sequences[0]["column"], "id")
-        self.assertEqual(sequences[1]["column"], "field")
-        self.assertSequence(sequences[1]["name"], old_field_cls, None)
+        self.assertColumns(Foo, {"id": "AutoField", "field": old_field_cls.__name__})
+        sequences = self.assertSequences(Foo, ["id", "field"])
+        self.assertSequence(sequences[1], old_field_cls, None)
 
         old_field = Foo._meta.get_field("field")
         new_field = new_field_cls()
@@ -5843,14 +5835,8 @@ class SchemaTests(TransactionTestCase):
         with connection.schema_editor() as editor:
             editor.alter_field(Foo, old_field, new_field, strict=True)
 
-        columns = self.column_classes(Foo)
-        self.assertEqual(len(columns), 2)
-        self.assertEqual(columns["id"][0], "AutoField")
-        self.assertEqual(columns["field"][0], new_field_cls.__name__)
-
-        sequences = self.get_sequences(table)
-        self.assertEqual(len(sequences), 1)
-        self.assertEqual(sequences[0]["column"], "id")
+        self.assertColumns(Foo, {"id": "AutoField", "field": new_field_cls.__name__})
+        self.assertSequences(Foo, ["id"])
 
     @unittest.skipUnless(connection.vendor == "postgresql", "PostgreSQL specific")
     @isolate_apps("schema")
@@ -5936,15 +5922,8 @@ class SchemaTests(TransactionTestCase):
 
         self.isolated_local_models = [Foo]
 
-        columns = self.column_classes(Foo)
-        self.assertEqual(len(columns), 2)
-        self.assertEqual(columns["id"][0], "AutoField")
-        self.assertEqual(columns["field"][0], old_field_cls.__name__)
-
-        table = Foo._meta.db_table
-        sequences = self.get_sequences(table)
-        self.assertEqual(len(sequences), 1)
-        self.assertEqual(sequences[0]["column"], "id")
+        self.assertColumns(Foo, {"id": "AutoField", "field": old_field_cls.__name__})
+        self.assertSequences(Foo, ["id"])
 
         old_field = Foo._meta.get_field("field")
         new_field = new_field_cls()
@@ -5954,16 +5933,9 @@ class SchemaTests(TransactionTestCase):
         with connection.schema_editor() as editor:
             editor.alter_field(Foo, old_field, new_field, strict=True)
 
-        columns = self.column_classes(Foo)
-        self.assertEqual(len(columns), 2)
-        self.assertEqual(columns["id"][0], "AutoField")
-        self.assertEqual(columns["field"][0], new_field_cls.__name__)
-
-        sequences = self.get_sequences(table)
-        self.assertEqual(len(sequences), 2)
-        self.assertEqual(sequences[0]["column"], "id")
-        self.assertEqual(sequences[1]["column"], "field")
-        self.assertSequence(sequences[1]["name"], new_field_cls, None)
+        self.assertColumns(Foo, {"id": "AutoField", "field": new_field_cls.__name__})
+        sequences = self.assertSequences(Foo, ["id", "field"])
+        self.assertSequence(sequences[1], new_field_cls, None)
 
     @unittest.skipUnless(connection.vendor == "postgresql", "PostgreSQL specific")
     @isolate_apps("schema")
@@ -6049,19 +6021,13 @@ class SchemaTests(TransactionTestCase):
 
         self.isolated_local_models = [Foo]
 
-        columns = self.column_classes(Foo)
-        self.assertEqual(len(columns), 1)
-        self.assertEqual(columns["id"][0], old_field_cls.__name__)
-
-        table = Foo._meta.db_table
-        sequences = self.get_sequences(table)
-        self.assertEqual(len(sequences), 1)
-        self.assertEqual(sequences[0]["column"], "id")
-        self.assertSequence(sequences[0]["name"], old_field_cls, None)
+        self.assertColumns(Foo, {"id": old_field_cls.__name__})
+        sequences = self.assertSequences(Foo, ["id"])
+        self.assertSequence(sequences[0], old_field_cls, None)
 
         obj = Foo.objects.create()
         self.assertEqual(obj.id, 1)
-        self.assertSequence(sequences[0]["name"], old_field_cls, 1)
+        self.assertSequence(sequences[0], old_field_cls, 1)
 
         old_field = Foo._meta.get_field("id")
         new_field = new_field_cls(primary_key=True)
@@ -6071,14 +6037,9 @@ class SchemaTests(TransactionTestCase):
         with connection.schema_editor() as editor:
             editor.alter_field(Foo, old_field, new_field, strict=True)
 
-        columns = self.column_classes(Foo)
-        self.assertEqual(len(columns), 1)
-        self.assertEqual(columns["id"][0], new_field_cls.__name__)
-
-        sequences = self.get_sequences(table)
-        self.assertEqual(len(sequences), 1)
-        self.assertEqual(sequences[0]["column"], "id")
-        self.assertSequence(sequences[0]["name"], new_field_cls, 1)
+        self.assertColumns(Foo, {"id": new_field_cls.__name__})
+        sequences = self.assertSequences(Foo, ["id"])
+        self.assertSequence(sequences[0], new_field_cls, 1)
 
     @unittest.skipUnless(connection.vendor == "postgresql", "PostgreSQL specific")
     @isolate_apps("schema")
@@ -6164,21 +6125,15 @@ class SchemaTests(TransactionTestCase):
 
         self.isolated_local_models = [Foo]
 
-        columns = self.column_classes(Foo)
-        self.assertEqual(len(columns), 1)
-        self.assertEqual(columns["id"][0], old_field_cls.__name__)
-
-        table = Foo._meta.db_table
-        sequences = self.get_sequences(table)
-        self.assertEqual(len(sequences), 1)
-        self.assertEqual(sequences[0]["column"], "id")
-        self.assertSequence(sequences[0]["name"], old_field_cls, None)
+        self.assertColumns(Foo, {"id": old_field_cls.__name__})
+        sequences = self.assertSequences(Foo, ["id"])
+        self.assertSequence(sequences[0], old_field_cls, None)
 
         obj = Foo.objects.create()
         self.assertEqual(obj.id, 1)
         obj = Foo.objects.create()
         self.assertEqual(obj.id, 2)
-        self.assertSequence(sequences[0]["name"], old_field_cls, 2)
+        self.assertSequence(sequences[0], old_field_cls, 2)
 
         old_field = Foo._meta.get_field("id")
         new_field = new_field_cls(primary_key=True)
@@ -6188,14 +6143,9 @@ class SchemaTests(TransactionTestCase):
         with connection.schema_editor() as editor:
             editor.alter_field(Foo, old_field, new_field, strict=True)
 
-        columns = self.column_classes(Foo)
-        self.assertEqual(len(columns), 1)
-        self.assertEqual(columns["id"][0], new_field_cls.__name__)
-
-        sequences = self.get_sequences(table)
-        self.assertEqual(len(sequences), 1)
-        self.assertEqual(sequences[0]["column"], "id")
-        self.assertSequence(sequences[0]["name"], new_field_cls, 2)
+        self.assertColumns(Foo, {"id": new_field_cls.__name__})
+        sequences = self.assertSequences(Foo, ["id"])
+        self.assertSequence(sequences[0], new_field_cls, 2)
 
     @unittest.skipUnless(connection.vendor == "postgresql", "PostgreSQL specific")
     @isolate_apps("schema")
@@ -6257,17 +6207,9 @@ class SchemaTests(TransactionTestCase):
 
         self.isolated_local_models = [Foo]
 
-        columns = self.column_classes(Foo)
-        self.assertEqual(len(columns), 2)
-        self.assertEqual(columns["id"][0], "AutoField")
-        self.assertEqual(columns["field"][0], old_field_cls.__name__)
-
-        table = Foo._meta.db_table
-        sequences = self.get_sequences(table)
-        self.assertEqual(len(sequences), 2)
-        self.assertEqual(sequences[0]["column"], "id")
-        self.assertEqual(sequences[1]["column"], "field")
-        self.assertSequence(sequences[1]["name"], old_field_cls, None)
+        self.assertColumns(Foo, {"id": "AutoField", "field": old_field_cls.__name__})
+        sequences = self.assertSequences(Foo, ["id", "field"])
+        self.assertSequence(sequences[1], old_field_cls, None)
 
         old_field = Foo._meta.get_field("field")
         new_field = new_field_cls()
@@ -6277,16 +6219,9 @@ class SchemaTests(TransactionTestCase):
         with connection.schema_editor() as editor:
             editor.alter_field(Foo, old_field, new_field, strict=True)
 
-        columns = self.column_classes(Foo)
-        self.assertEqual(len(columns), 2)
-        self.assertEqual(columns["id"][0], "AutoField")
-        self.assertEqual(columns["field"][0], new_field_cls.__name__)
-
-        sequences = self.get_sequences(table)
-        self.assertEqual(len(sequences), 2)
-        self.assertEqual(sequences[0]["column"], "id")
-        self.assertEqual(sequences[1]["column"], "field")
-        self.assertSequence(sequences[1]["name"], new_field_cls, None)
+        self.assertColumns(Foo, {"id": "AutoField", "field": new_field_cls.__name__})
+        sequences = self.assertSequences(Foo, ["id", "field"])
+        self.assertSequence(sequences[1], new_field_cls, None)
 
     @unittest.skipUnless(connection.vendor == "postgresql", "PostgreSQL specific")
     @isolate_apps("schema")
@@ -6322,14 +6257,8 @@ class SchemaTests(TransactionTestCase):
 
         self.isolated_local_models = [Foo]
 
-        columns = self.column_classes(Foo)
-        self.assertEqual(len(columns), 1)
-        self.assertEqual(columns["id"][0], "AutoField")
-
-        table = Foo._meta.db_table
-        sequences = self.get_sequences(table)
-        self.assertEqual(len(sequences), 1)
-        self.assertEqual(sequences[0]["column"], "id")
+        self.assertColumns(Foo, {"id": "AutoField"})
+        self.assertSequences(Foo, ["id"])
 
         field = field_cls()
         field.model = Foo
@@ -6338,16 +6267,9 @@ class SchemaTests(TransactionTestCase):
         with connection.schema_editor() as editor:
             editor.add_field(Foo, field)
 
-        columns = self.column_classes(Foo)
-        self.assertEqual(len(columns), 2)
-        self.assertEqual(columns["id"][0], "AutoField")
-        self.assertEqual(columns["field"][0], field_cls.__name__)
-
-        sequences = self.get_sequences(table)
-        self.assertEqual(len(sequences), 2)
-        self.assertEqual(sequences[0]["column"], "id")
-        self.assertEqual(sequences[1]["column"], "field")
-        self.assertSequence(sequences[1]["name"], field_cls, None)
+        self.assertColumns(Foo, {"id": "AutoField", "field": field_cls.__name__})
+        sequences = self.assertSequences(Foo, ["id", "field"])
+        self.assertSequence(sequences[1], field_cls, None)
 
     @unittest.skipUnless(connection.vendor == "postgresql", "PostgreSQL specific")
     @isolate_apps("schema")
@@ -6385,30 +6307,31 @@ class SchemaTests(TransactionTestCase):
 
         self.isolated_local_models = [Foo]
 
-        columns = self.column_classes(Foo)
-        self.assertEqual(len(columns), 2)
-        self.assertEqual(columns["id"][0], "AutoField")
-        self.assertEqual(columns["field"][0], field_cls.__name__)
-
-        table = Foo._meta.db_table
-        sequences = self.get_sequences(table)
-        self.assertEqual(len(sequences), 2)
-        self.assertEqual(sequences[0]["column"], "id")
-        self.assertEqual(sequences[1]["column"], "field")
-        self.assertSequence(sequences[1]["name"], field_cls, None)
+        self.assertColumns(Foo, {"id": "AutoField", "field": field_cls.__name__})
+        sequences = self.assertSequences(Foo, ["id", "field"])
+        self.assertSequence(sequences[1], field_cls, None)
 
         field = Foo._meta.get_field("field")
 
         with connection.schema_editor() as editor:
             editor.remove_field(Foo, field)
 
-        columns = self.column_classes(Foo)
-        self.assertEqual(len(columns), 1)
-        self.assertEqual(columns["id"][0], "AutoField")
+        self.assertColumns(Foo, {"id": "AutoField"})
+        self.assertSequences(Foo, ["id"])
 
+    def assertColumns(self, model, columns):
+        column_classes = self.column_classes(model)
+        self.assertEqual(len(column_classes), len(columns))
+        for key, value in columns.items():
+            self.assertEqual(column_classes[key][0], value)
+
+    def assertSequences(self, model, fields):
+        table = model._meta.db_table
         sequences = self.get_sequences(table)
-        self.assertEqual(len(sequences), 1)
-        self.assertEqual(sequences[0]["column"], "id")
+        self.assertEqual(len(sequences), len(fields))
+        columns = [sequence["column"] for sequence in sequences]
+        self.assertEqual(columns, fields)
+        return [sequence["name"] for sequence in sequences]
 
     def assertSequence(self, sequence, field_cls, value):
         data_types = {
