@@ -8,6 +8,7 @@ from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured
 from django.core.signals import setting_changed
 from django.db import connections
 from django.db.models import AutoField, Manager, OrderWrt, UniqueConstraint
+from django.db.models.fields.composite import CompositePrimaryKey
 from django.db.models.query_utils import PathInfo
 from django.utils.datastructures import ImmutableList, OrderedSet
 from django.utils.functional import cached_property
@@ -25,6 +26,7 @@ IMMUTABLE_WARNING = (
 )
 
 DEFAULT_NAMES = (
+    "primary_key",
     "verbose_name",
     "verbose_name_plural",
     "db_table",
@@ -107,6 +109,7 @@ class Options:
         self.base_manager_name = None
         self.default_manager_name = None
         self.model_name = None
+        self.primary_key = None
         self.verbose_name = None
         self.verbose_name_plural = None
         self.db_table = ""
@@ -300,7 +303,10 @@ class Options:
             self.order_with_respect_to = None
 
         if self.pk is None:
-            if self.parents:
+            if self.primary_key:
+                pk = CompositePrimaryKey(*self.primary_key)
+                model.add_to_class("primary_key", pk)
+            elif self.parents:
                 # Promote the first parent link in lieu of adding yet another
                 # field.
                 field = next(iter(self.parents.values()))

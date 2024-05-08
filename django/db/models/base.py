@@ -30,6 +30,7 @@ from django.db.models import NOT_PROVIDED, ExpressionWrapper, IntegerField, Max,
 from django.db.models.constants import LOOKUP_SEP
 from django.db.models.deletion import CASCADE, Collector
 from django.db.models.expressions import DatabaseDefault
+from django.db.models.fields.composite import is_pk_set
 from django.db.models.fields.related import (
     ForeignObjectRel,
     OneToOneField,
@@ -1080,7 +1081,7 @@ class Model(AltersData, metaclass=ModelBase):
         if pk_val is None:
             pk_val = meta.pk.get_pk_value_on_save(self)
             setattr(self, meta.pk.attname, pk_val)
-        pk_set = pk_val is not None
+        pk_set = is_pk_set(pk_val)
         if not pk_set and (force_update or update_fields):
             raise ValueError("Cannot force an update in save() with no primary key.")
         updated = False
@@ -1687,6 +1688,7 @@ class Model(AltersData, metaclass=ModelBase):
                 *cls._check_constraints(databases),
                 *cls._check_default_pk(),
                 *cls._check_db_table_comment(databases),
+                *cls._check_composite_pk(),
             ]
 
         return errors
@@ -1695,6 +1697,9 @@ class Model(AltersData, metaclass=ModelBase):
     def _check_default_pk(cls):
         if (
             not cls._meta.abstract
+            # If the model defines Meta.primary_key, the check should be skipped,
+            # since there's no default primary key.
+            and not cls._meta.primary_key
             and cls._meta.pk.auto_created
             and
             # Inherited PKs are checked in parents models.
@@ -1722,6 +1727,26 @@ class Model(AltersData, metaclass=ModelBase):
                 ),
             ]
         return []
+
+    @classmethod
+    def _check_composite_pk(cls):
+        errors = []
+
+        if cls._meta.primary_key is None:
+            return errors
+
+        for field in cls._meta.fields:
+            if field.primary_key:
+                errors.append(
+                    checks.Error(
+                        "%s may not set primary_key=True if Meta.primary_key "
+                        "is defined." % (field.name,),
+                        obj=cls,
+                        id="models.E042",
+                    )
+                )
+
+        return errors
 
     @classmethod
     def _check_db_table_comment(cls, databases):
@@ -1843,6 +1868,11 @@ class Model(AltersData, metaclass=ModelBase):
     @classmethod
     def _check_id_field(cls):
         """Check if `id` field is a primary key."""
+        # If the model defines Meta.primary_key, the check should be skipped,
+        # since primary_key=True can't be set on any fields (including `id`).
+        if cls._meta.primary_key:
+            return []
+
         fields = [
             f for f in cls._meta.local_fields if f.name == "id" and f != cls._meta.pk
         ]

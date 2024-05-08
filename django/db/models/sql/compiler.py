@@ -8,6 +8,7 @@ from django.core.exceptions import EmptyResultSet, FieldError, FullResultSet
 from django.db import DatabaseError, NotSupportedError
 from django.db.models.constants import LOOKUP_SEP
 from django.db.models.expressions import F, OrderBy, RawSQL, Ref, Value
+from django.db.models.fields.composite import CompositePrimaryKey
 from django.db.models.functions import Cast, Random
 from django.db.models.lookups import Lookup
 from django.db.models.query_utils import select_related_descend
@@ -979,6 +980,12 @@ class SQLCompiler:
         # be used by local fields.
         seen_models = {None: start_alias}
 
+        select_mask_fields = set()
+        for field in select_mask:
+            select_mask_fields.update(
+                field.fields if isinstance(field, CompositePrimaryKey) else [field]
+            )
+
         for field in opts.concrete_fields:
             model = field.model._meta.concrete_model
             # A proxy model will have a different model and concrete_model. We
@@ -998,7 +1005,7 @@ class SQLCompiler:
                 # parent model data is already present in the SELECT clause,
                 # and we want to avoid reloading the same data again.
                 continue
-            if select_mask and field not in select_mask:
+            if select_mask and field not in select_mask_fields:
                 continue
             alias = self.query.join_parent_model(opts, model, start_alias, seen_models)
             column = field.get_col(alias)
@@ -2050,7 +2057,7 @@ class SQLUpdateCompiler(SQLCompiler):
 
         must_pre_select = (
             count > 1 and not self.connection.features.update_can_self_select
-        )
+        ) or meta.primary_key
 
         # Now we adjust the current query: reset the where clause and get rid
         # of all the tables we don't need (since they're in the sub-select).
@@ -2062,7 +2069,10 @@ class SQLUpdateCompiler(SQLCompiler):
             idents = []
             related_ids = collections.defaultdict(list)
             for rows in query.get_compiler(self.using).execute_sql(MULTI):
-                idents.extend(r[0] for r in rows)
+                if meta.primary_key:
+                    idents.extend(rows)
+                else:
+                    idents.extend(r[0] for r in rows)
                 for parent, index in related_ids_index:
                     related_ids[parent].extend(r[index] for r in rows)
             self.query.add_filter("pk__in", idents)

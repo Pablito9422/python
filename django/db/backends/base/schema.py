@@ -106,6 +106,7 @@ class BaseDatabaseSchemaEditor:
     sql_check_constraint = "CHECK (%(check)s)"
     sql_delete_constraint = "ALTER TABLE %(table)s DROP CONSTRAINT %(name)s"
     sql_constraint = "CONSTRAINT %(name)s %(constraint)s"
+    sql_pk_constraint = "PRIMARY KEY (%(columns)s)"
 
     sql_create_check = "ALTER TABLE %(table)s ADD CONSTRAINT %(name)s CHECK (%(check)s)"
     sql_delete_check = sql_delete_constraint
@@ -269,6 +270,13 @@ class BaseDatabaseSchemaEditor:
             constraint.constraint_sql(model, self)
             for constraint in model._meta.constraints
         ]
+
+        # If the model defines Meta.primary_key, add the primary key constraint
+        # to the table definition.
+        # It's expected primary_key=True isn't set on any fields (see E042).
+        if model._meta.primary_key:
+            constraints.append(self._pk_constraint_sql(model._meta.primary_key))
+
         sql = self.sql_create_table % {
             "table": self.quote_name(model._meta.db_table),
             "definition": ", ".join(
@@ -1974,6 +1982,11 @@ class BaseDatabaseSchemaEditor:
                 if not exclude or name not in exclude:
                     result.append(name)
         return result
+
+    def _pk_constraint_sql(self, fields):
+        return self.sql_pk_constraint % {
+            "columns": ", ".join(self.quote_name(field) for field in fields)
+        }
 
     def _delete_primary_key(self, model, strict=False):
         constraint_names = self._constraint_names(model, primary_key=True)
