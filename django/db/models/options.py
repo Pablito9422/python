@@ -7,7 +7,7 @@ from django.conf import settings
 from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured
 from django.db import connections
 from django.db.models import AutoField, Manager, OrderWrt, UniqueConstraint
-from django.db.models.fields.composite import CompositeField
+from django.db.models.fields.composite import CompositePrimaryKey
 from django.db.models.query_utils import PathInfo
 from django.utils.datastructures import ImmutableList, OrderedSet
 from django.utils.functional import cached_property
@@ -300,7 +300,7 @@ class Options:
 
         if self.pk is None:
             if self.primary_key:
-                pk = CompositeField(*self.primary_key)
+                pk = CompositePrimaryKey(*self.primary_key)
                 model.add_to_class("primary_key", pk)
             elif self.parents:
                 # Promote the first parent link in lieu of adding yet another

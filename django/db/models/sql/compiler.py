@@ -8,7 +8,7 @@ from django.core.exceptions import EmptyResultSet, FieldError, FullResultSet
 from django.db import DatabaseError, NotSupportedError
 from django.db.models.constants import LOOKUP_SEP
 from django.db.models.expressions import F, OrderBy, RawSQL, Ref, Value
-from django.db.models.fields.composite import CompositeField
+from django.db.models.fields.composite import CompositePrimaryKey
 from django.db.models.functions import Cast, Random
 from django.db.models.lookups import Lookup
 from django.db.models.query_utils import select_related_descend
@@ -983,7 +983,7 @@ class SQLCompiler:
         select_mask_fields = set()
         for field in select_mask:
             select_mask_fields.update(
-                field.fields if isinstance(field, CompositeField) else [field]
+                field.fields if isinstance(field, CompositePrimaryKey) else [field]
             )
 
         for field in opts.concrete_fields:

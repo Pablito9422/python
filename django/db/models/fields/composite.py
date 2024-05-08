@@ -126,7 +126,7 @@ class CompositeAttribute:
             setattr(instance, field_name, value)
 
 
-class CompositeField(Field):
+class CompositePrimaryKey(Field):
     descriptor_class = CompositeAttribute
 
     def __init__(self, *args, **kwargs):
@@ -166,7 +166,7 @@ class CompositeField(Field):
 def resolve_fields(*args, **kwargs):
     meta = kwargs["sender"]._meta
     for field in meta.private_fields:
-        if isinstance(field, CompositeField) and field.fields is None:
+        if isinstance(field, CompositePrimaryKey) and field.fields is None:
             try:
                 field.fields = tuple(meta.get_field(name) for name in field.field_names)
             except FieldDoesNotExist:
