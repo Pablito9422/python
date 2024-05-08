@@ -25,11 +25,18 @@ from django.core.files.uploadedfile import (
 )
 from django.db.models import FileField
 from django.db.models.fields.files import FileDescriptor
-from django.test import LiveServerTestCase, SimpleTestCase, TestCase, override_settings
+from django.test import (
+    LiveServerTestCase,
+    SimpleTestCase,
+    TestCase,
+    ignore_warnings,
+    override_settings,
+)
 from django.test.utils import requires_tz_support
 from django.urls import NoReverseMatch, reverse_lazy
 from django.utils import timezone
 from django.utils._os import symlinks_supported
+from django.utils.deprecation import RemovedInDjango60Warning
 
 from .models import (
     Storage,
@@ -621,7 +628,24 @@ class OverwritingStorage(FileSystemStorage):
         return name
 
 
-class OverwritingStorageTests(FileStorageTests):
+class OverwritingStorageOSOpenFlagsWarningTests(SimpleTestCase):
+    storage_class = OverwritingStorage
+
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.temp_dir)
+
+    def test_os_open_flags_deprecation_warning(self):
+        msg = "Overriding OS_OPEN_FLAGS is deprecated. Use the allow_overwrite "
+        msg += "parameter instead."
+        with self.assertWarnsMessage(RemovedInDjango60Warning, msg):
+            self.storage = self.storage_class(
+                location=self.temp_dir, base_url="/test_media_url/"
+            )
+
+
+@ignore_warnings(category=RemovedInDjango60Warning)
+class OverwritingStorageOSOpenFlagsTests(FileStorageTests):
     storage_class = OverwritingStorage
 
     def test_save_overwrite_behavior(self):
@@ -632,6 +656,69 @@ class OverwritingStorageTests(FileStorageTests):
         content_2 = b"second content"
         f_1 = ContentFile(content_1)
         f_2 = ContentFile(content_2)
+        stored_name_1 = self.storage.save(name, f_1)
+        try:
+            self.assertEqual(stored_name_1, name)
+            self.assertTrue(self.storage.exists(name))
+            self.assertTrue(os.path.exists(os.path.join(self.temp_dir, name)))
+            with self.storage.open(name) as fp:
+                self.assertEqual(fp.read(), content_1)
+            stored_name_2 = self.storage.save(name, f_2)
+            self.assertEqual(stored_name_2, name)
+            self.assertTrue(self.storage.exists(name))
+            self.assertTrue(os.path.exists(os.path.join(self.temp_dir, name)))
+            with self.storage.open(name) as fp:
+                self.assertEqual(fp.read(), content_2)
+        finally:
+            self.storage.delete(name)
+
+
+class OverwritingStorageTests(FileStorageTests):
+    storage_class = FileSystemStorage
+
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.temp_dir)
+        self.storage = self.storage_class(
+            location=self.temp_dir, base_url="/test_media_url/", allow_overwrite=True
+        )
+
+    def test_save_overwrite_behavior(self):
+        """Saving to same file name twice overwrites the first file."""
+        name = "test.file"
+        self.assertFalse(self.storage.exists(name))
+        content_1 = b"content one"
+        content_2 = b"second content"
+        f_1 = ContentFile(content_1)
+        f_2 = ContentFile(content_2)
+        stored_name_1 = self.storage.save(name, f_1)
+        try:
+            self.assertEqual(stored_name_1, name)
+            self.assertTrue(self.storage.exists(name))
+            self.assertTrue(os.path.exists(os.path.join(self.temp_dir, name)))
+            with self.storage.open(name) as fp:
+                self.assertEqual(fp.read(), content_1)
+            stored_name_2 = self.storage.save(name, f_2)
+            self.assertEqual(stored_name_2, name)
+            self.assertTrue(self.storage.exists(name))
+            self.assertTrue(os.path.exists(os.path.join(self.temp_dir, name)))
+            with self.storage.open(name) as fp:
+                self.assertEqual(fp.read(), content_2)
+        finally:
+            self.storage.delete(name)
+
+    def test_save_overwrite_behavior_temp_file(self):
+        """Saving to same file name twice overwrites the first file."""
+        name = "test.file"
+        self.assertFalse(self.storage.exists(name))
+        content_1 = b"content one"
+        content_2 = b"second content"
+        f_1 = TemporaryUploadedFile("tmp1", "text/plain", 11, "utf8")
+        f_1.write(content_1)
+        f_1.seek(0)
+        f_2 = TemporaryUploadedFile("tmp2", "text/plain", 14, "utf8")
+        f_2.write(content_2)
+        f_2.seek(0)
         stored_name_1 = self.storage.save(name, f_1)
         try:
             self.assertEqual(stored_name_1, name)
