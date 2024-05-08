@@ -130,6 +130,8 @@ from .models import (
     Telegram,
     Thing,
     Topping,
+    Transition,
+    Transitionstate,
     Traveler,
     UnchangeableObject,
     UndeletableObject,
@@ -1179,6 +1181,10 @@ class TravelerAdmin(admin.ModelAdmin):
     autocomplete_fields = ["living_country"]
 
 
+class TransitionAdmin(admin.ModelAdmin):
+    filter_horizontal = ["source"]
+
+
 class SquareAdmin(admin.ModelAdmin):
     readonly_fields = ("area",)
 
@@ -1310,6 +1316,8 @@ site.register(UserProxy)
 site.register(Box)
 site.register(Country, CountryAdmin)
 site.register(Traveler, TravelerAdmin)
+site.register(Transitionstate)
+site.register(Transition, TransitionAdmin)
 site.register(Square, SquareAdmin)
 site.register(CamelCaseModel)
 site.register(CamelCaseRelatedModel, CamelCaseAdmin)
