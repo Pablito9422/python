@@ -160,6 +160,7 @@ class Feed:
             feed_copyright=self._get_dynamic_attr("feed_copyright", obj),
             feed_guid=self._get_dynamic_attr("feed_guid", obj),
             ttl=self._get_dynamic_attr("ttl", obj),
+            stylesheet=self._get_dynamic_attr("stylesheet", obj),
             **self.feed_extra_kwargs(obj),
         )
 

@@ -158,7 +158,9 @@ Minor features
 :mod:`django.contrib.syndication`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* ...
+* All :class:`~django.utils.feedgenerator.SyndicationFeed` classes now support
+  a ``stylesheet`` attribute. If specified, an ``<? xml-stylesheet ?>``
+  processing instruction will be added to the top of the document.
 
 Asynchronous views
 ~~~~~~~~~~~~~~~~~~

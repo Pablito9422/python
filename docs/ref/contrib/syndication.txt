@@ -596,6 +596,24 @@ This example illustrates all possible attributes and methods for a
 
         ttl = 600  # Hard-coded Time To Live.
 
+        # STYLESHEET -- One of the following three is optional. The framework
+        # looks for them in this order.
+
+        def stylesheet(self, obj):
+            """
+            Takes the object returned by get_object() and returns the feed's
+            stylesheet (an URL string or a Stylesheet instance).
+            """
+
+        def stylesheet(self):
+            """
+            Returns the feed's stylesheet (an URL string or a Stylesheet
+            instance).
+            """
+
+        stylesheet = "/link/to/stylesheet.xsl"
+        stylesheet = feedgenerator.Stylesheet("/link/to/stylesheet.xsl")
+
         # ITEMS -- One of the following three is required. The framework looks
         # for them in this order.
 
@@ -961,6 +979,7 @@ They share this interface:
     * ``feed_copyright``
     * ``feed_guid``
     * ``ttl``
+    * ``stylesheet``
 
     Any extra keyword arguments you pass to ``__init__`` will be stored in
     ``self.feed`` for use with `custom feed generators`_.
@@ -1095,3 +1114,91 @@ For example, you might start implementing an iTunes RSS feed generator like so::
 
 There's a lot more work to be done for a complete custom feed class, but the
 above example should demonstrate the basic idea.
+
+Feed stylesheets
+----------------
+
+.. versionadded:: 5.1
+
+You can add styling to your RSS feed using a stylesheet (typically in the XSLT_
+or CSS formats) by setting the ``stylesheet`` attribute on the feed class.
+
+This can be a hardcoded URL::
+
+    from django.contrib.syndication.views import Feed
+
+
+    class FeedWithHardcodedStylesheet(Feed):
+        ...  # author, etc.
+        stylesheet = "https://example.com/rss_stylesheet.xslt"
+
+You can also use Django's static files system::
+
+    from django.contrib.syndication.views import Feed
+    from django.templatetags.static import static
+
+
+    class FeedWithStaticFileStylesheet(Feed):
+        ...  # author, etc.
+        stylesheet = static("rss_styles.xslt")
+
+Another option is to have a view in your project that renders the XSLT document.
+You can then link it like so::
+
+    from django.contrib.syndication.views import Feed
+    from django.urls import reverse_lazy
+
+
+    class FeedWithStylesheetView(Feed):
+        ...  # author, etc.
+        stylesheet = reverse_lazy("your-custom-view-name")
+
+Django will normally try to guess the MIME type of the given URL based on its
+extension, but if that fails you can specify it using the
+:class:`~django.utils.feedgenerator.Stylesheet` class::
+
+    from django.contrib.syndication.views import Feed
+    from django.utils.feedgenerator import Stylesheet
+
+
+    class FeedWithHardcodedStylesheet(Feed):
+        ...  # author, etc.
+        stylesheet = Stylesheet("https://example.com/rss_stylesheet", mimetype="text/xsl")
+
+Similarly, if you'd like to use a different ``media`` attribute than ``screen``
+(Django's default), you can use the
+:class:`~django.utils.feedgenerator.Stylesheet` class again::
+
+    from django.contrib.syndication.views import Feed
+    from django.utils.feedgenerator import Stylesheet
+
+
+    class FeedWithHardcodedStylesheet(Feed):
+        ...  # author, etc.
+        stylesheet = Stylesheet("https://example.com/rss_stylesheet.xslt", media="print")
+
+The builtin ``Feed`` class only supports a single stylesheet. If you want your
+feed to have multiple stylesheets, you need to subclass it::
+
+    from django.contrib.syndication.views import Feed
+    from django.utils.feedgenerator import DefaultFeed, Stylesheet
+
+
+    class MultiStylesheetFeedType(DefaultFeed):
+        def add_stylesheets(self, handler):
+            for stylesheet in self.feed["stylesheets"]:
+                handler.processingInstruction("xml-stylesheet", stylesheet)
+
+
+    class MultiStylesheetFeed(Feed):
+        ...  # author, etc.
+        feed_type = MultiStylesheetFeedType
+        stylesheets = [
+            Stylesheet("/stylesheet1.xsl"),
+            Stylesheet("/stylesheet2.xsl"),
+        ]
+
+        def feed_extra_kwargs(self, obj):
+            return {"stylesheets": self.stylesheets}
+
+.. _xslt: https://developer.mozilla.org/en-US/docs/Web/XSLT/Transforming_XML_with_XSLT
