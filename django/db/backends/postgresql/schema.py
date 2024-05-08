@@ -27,6 +27,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         "SELECT setval(pg_get_serial_sequence(%s, %s), "
         "coalesce(max(%s), 1), max(%s) IS NOT NULL) FROM %s;"
     )
+    sql_rename_sequence = "ALTER SEQUENCE %s RENAME TO %s;"
 
     sql_create_index = (
         "CREATE INDEX %(name)s ON %(table)s%(using)s "
@@ -52,6 +53,11 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         "ALTER TABLE %(table)s DROP CONSTRAINT %(name)s"
     )
     sql_delete_procedure = "DROP FUNCTION %(procedure)s(%(param_types)s)"
+    serial_field_types = {
+        "SerialField": "integer",
+        "BigSerialField": "bigint",
+        "SmallSerialField": "smallint",
+    }
 
     def execute(self, sql, params=()):
         # Merge the query client-side, as PostgreSQL won't do it server-side.
@@ -198,17 +204,12 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         old_is_auto = old_internal_type in auto_field_types
         new_is_auto = new_internal_type in auto_field_types
 
-        serial_field_types = {
-            "SerialField": "integer",
-            "BigSerialField": "bigint",
-            "SmallSerialField": "smallint",
-        }
-        old_is_serial = old_internal_type in serial_field_types
-        new_is_serial = new_internal_type in serial_field_types
+        old_is_serial = old_internal_type in self.serial_field_types
+        new_is_serial = new_internal_type in self.serial_field_types
 
         if old_is_auto and new_is_serial:
             column = strip_quotes(new_field.column)
-            data_type = serial_field_types[new_internal_type]
+            data_type = self.serial_field_types[new_internal_type]
             fragment, _ = super()._alter_column_type_sql(
                 model, old_field, new_field, data_type, old_collation, new_collation
             )
@@ -285,7 +286,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
             return fragment, other_actions
         elif new_is_serial and not old_is_serial:
             column = strip_quotes(new_field.column)
-            data_type = serial_field_types[new_internal_type]
+            data_type = self.serial_field_types[new_internal_type]
             fragment, _ = super()._alter_column_type_sql(
                 model, old_field, new_field, data_type, old_collation, new_collation
             )
@@ -315,7 +316,7 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         elif old_is_serial and new_is_serial and old_internal_type != new_internal_type:
             column = strip_quotes(new_field.column)
             sequence_name = self._get_sequence_name(table, column)
-            data_type = serial_field_types[new_internal_type]
+            data_type = self.serial_field_types[new_internal_type]
             fragment, _ = super()._alter_column_type_sql(
                 model, old_field, new_field, data_type, old_collation, new_collation
             )
@@ -366,6 +367,21 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
                 model._meta.db_table, [old_field.column], suffix="_like"
             )
             self.execute(self._delete_index_sql(model, index_to_remove))
+
+        new_internal_type = new_field.get_internal_type()
+        old_internal_type = old_field.get_internal_type()
+        old_is_serial = old_internal_type in self.serial_field_types
+        new_is_serial = new_internal_type in self.serial_field_types
+
+        # Renamed a serial field? Rename the sequence.
+        if old_is_serial and new_is_serial and old_field.column != new_field.column:
+            self.execute(
+                self._rename_sequence_sql(
+                    model._meta.db_table,
+                    strip_quotes(old_field.column),
+                    strip_quotes(new_field.column),
+                ),
+            )
 
     def _index_columns(self, table, columns, col_suffixes, opclasses):
         if opclasses:
@@ -500,3 +516,9 @@ class DatabaseSchemaEditor(BaseDatabaseSchemaEditor):
         return self.sql_delete_sequence % {
             "sequence": self.quote_name(sequence),
         }
+
+    def _rename_sequence_sql(self, table, old_column, new_column):
+        return self.sql_rename_sequence % (
+            f"{table}_{old_column}_seq",
+            f"{table}_{new_column}_seq",
+        )

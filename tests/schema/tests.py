@@ -6319,6 +6319,36 @@ class SchemaTests(TransactionTestCase):
         self.assertColumns(Foo, {"id": "AutoField"})
         self.assertSequences(Foo, ["id"])
 
+    @unittest.skipUnless(connection.vendor == "postgresql", "PostgreSQL specific")
+    @isolate_apps("schema")
+    @tag("serial")
+    def test_rename_serial_field(self):
+        from django.contrib.postgres.fields import SerialField
+
+        class Foo(Model):
+            field = SerialField()
+
+            class Meta:
+                app_label = "schema"
+
+        with connection.schema_editor() as editor:
+            editor.create_model(Foo)
+
+        self.isolated_local_models = [Foo]
+
+        old_field = Foo._meta.get_field("field")
+        new_field = SerialField()
+        new_field.model = Foo
+        new_field.set_attributes_from_name("field_2")
+
+        with connection.schema_editor() as editor:
+            editor.alter_field(Foo, old_field, new_field, strict=True)
+
+        self.assertColumns(Foo, {"id": "AutoField", "field_2": "SerialField"})
+        sequences = self.assertSequences(Foo, ["id", "field_2"])
+        self.assertEqual(sequences[1], "schema_foo_field_2_seq")
+        self.assertSequence(sequences[1], SerialField, None)
+
     def assertColumns(self, model, columns):
         column_classes = self.column_classes(model)
         self.assertEqual(len(column_classes), len(columns))
