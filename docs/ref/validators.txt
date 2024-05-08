@@ -370,3 +370,28 @@ to, or in lieu of custom ``field.clean()`` methods.
     .. versionchanged:: 5.0
 
         The ``offset`` argument was added.
+
+``DomainNameValidator``
+-----------------------
+
+.. versionadded:: 5.1
+
+.. class:: DomainNameValidator(schemes=None, regex=None, message=None, code=None, is_idna=True)
+
+    A :class:`RegexValidator` subclass that ensures a value looks like a domain name. Values longer than
+    255 characters are always considered invalid.
+
+    In addition to the optional arguments of its parent :class:`RegexValidator`
+    class, ``DomainNameValidator`` accepts an extra optional attribute:
+
+
+    .. attribute:: is_idna
+        This determines whether or not to accept internationalized domain name, that is,
+        domain names that contain non-ASCII characters. Default value is true.
+        
+``validate_domain_name``
+------------------------
+
+.. data:: validate_domain_name
+
+    An :class:`DomainNameValidator` instance without any customizations.
