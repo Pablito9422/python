@@ -643,6 +643,20 @@ class SyndicationFeedTest(FeedTestCase):
             'href="/stylesheet.xsl" type="text/xsl" media="screen"',
         )
 
+    def test_multiple_stylesheets(self):
+        response = self.client.get("/syndication/stylesheet/multi/")
+        doc = minidom.parseString(response.content)
+        self.assertEqual(doc.childNodes[0].nodeName, "xml-stylesheet")
+        self.assertEqual(
+            doc.childNodes[0].data,
+            'href="/stylesheet1.xsl" type="text/xsl" media="screen"',
+        )
+        self.assertEqual(doc.childNodes[1].nodeName, "xml-stylesheet")
+        self.assertEqual(
+            doc.childNodes[1].data,
+            'href="/stylesheet2.xsl" type="text/xsl" media="screen"',
+        )
+
     @requires_tz_support
     def test_feed_last_modified_time_naive_date(self):
         """

@@ -37,6 +37,7 @@ urlpatterns = [
     path("syndication/template/", feeds.TemplateFeed()),
     path("syndication/template_context/", feeds.TemplateContextFeed()),
     path("syndication/stylesheet/", feeds.TestFeedWithStylesheet()),
+    path("syndication/stylesheet/multi/", feeds.TestFeedWithMultipleStylesheets()),
     path("syndication/rss2/single-enclosure/", feeds.TestSingleEnclosureRSSFeed()),
     path("syndication/rss2/multiple-enclosure/", feeds.TestMultipleEnclosureRSSFeed()),
     path("syndication/atom/single-enclosure/", feeds.TestSingleEnclosureAtomFeed()),

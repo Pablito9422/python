@@ -240,6 +240,23 @@ class TestFeedWithStylesheet(TestRss2Feed):
     stylesheet = "/stylesheet.xsl"
 
 
+class _MultiStylesheetFeedType(feedgenerator.DefaultFeed):
+    def add_stylesheets(self, handler):
+        for stylesheet in self.feed["stylesheets"]:
+            handler.processingInstruction("xml-stylesheet", stylesheet)
+
+
+class TestFeedWithMultipleStylesheets(TestRss2Feed):
+    feed_type = _MultiStylesheetFeedType
+    stylesheets = [
+        feedgenerator.Stylesheet("/stylesheet1.xsl"),
+        feedgenerator.Stylesheet("/stylesheet2.xsl"),
+    ]
+
+    def feed_extra_kwargs(self, obj):
+        return {"stylesheets": self.stylesheets}
+
+
 class NaiveDatesFeed(TestAtomFeed):
     """
     A feed with naive (non-timezone-aware) dates.

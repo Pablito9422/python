@@ -1177,4 +1177,28 @@ Similarly, if you'd like to use a different ``media`` attribute than ``screen``
         ...  # author, etc.
         stylesheet = Stylesheet("https://example.com/rss_stylesheet.xslt", media="print")
 
+The builtin ``Feed`` class only supports a single stylesheet. If you want your
+feed to have multiple stylesheets, you need to subclass it::
+
+    from django.contrib.syndication.views import Feed
+    from django.utils.feedgenerator import DefaultFeed, Stylesheet
+
+
+    class MultiStylesheetFeedType(DefaultFeed):
+        def add_stylesheets(self, handler):
+            for stylesheet in self.feed["stylesheets"]:
+                handler.processingInstruction("xml-stylesheet", stylesheet)
+
+
+    class MultiStylesheetFeed(Feed):
+        ...  # author, etc.
+        feed_type = MultiStylesheetFeedType
+        stylesheets = [
+            Stylesheet("/stylesheet1.xsl"),
+            Stylesheet("/stylesheet2.xsl"),
+        ]
+
+        def feed_extra_kwargs(self, obj):
+            return {"stylesheets": self.stylesheets}
+
 .. _xslt: https://developer.mozilla.org/en-US/docs/Web/XSLT/Transforming_XML_with_XSLT
