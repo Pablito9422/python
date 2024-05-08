@@ -3,6 +3,7 @@ import posixpath
 
 from django import forms
 from django.core import checks
+from django.core.exceptions import FieldError
 from django.core.files.base import File
 from django.core.files.images import ImageFile
 from django.core.files.storage import Storage, default_storage
@@ -312,6 +313,8 @@ class FileField(Field):
 
     def pre_save(self, model_instance, add):
         file = super().pre_save(model_instance, add)
+        if file.name is None and getattr(file, "_file") is not None:
+            raise FieldError("File name cannot be empty.")
         if file and not file._committed:
             # Commit the file to storage prior to saving the model
             file.save(file.name, file.file, save=False)
