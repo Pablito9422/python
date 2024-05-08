@@ -234,7 +234,7 @@ Internationalization
 Logging
 ~~~~~~~
 
-* ...
+* :djadmin:`runserver` log messages now also include the response time.
 
 Management Commands
 ~~~~~~~~~~~~~~~~~~~
