@@ -1,4 +1,5 @@
 import math
+import unittest
 from decimal import Decimal
 
 from django.core.exceptions import FieldDoesNotExist
@@ -17,7 +18,7 @@ from django.test import (
     skipIfDBFeature,
     skipUnlessDBFeature,
 )
-from django.test.utils import CaptureQueriesContext
+from django.test.utils import CaptureQueriesContext, tag
 
 from .models import FoodManager, FoodQuerySet, UnicodeModel
 from .test_base import OperationTestBase
@@ -6070,6 +6071,54 @@ class OperationTests(OperationTestBase):
         pony_new = Pony.objects.create(weight=20)
         self.assertEqual(pony_new.generated, 1)
         self.assertEqual(pony_new.static, 2)
+
+    @unittest.skipUnless(connection.vendor == "postgresql", "PostgreSQL specific")
+    @tag("serial")
+    def test_serial_field_operations(self):
+        from django.contrib.postgres.fields import SerialField
+
+        app_label = "test_3650d5bb"
+        project_state = self.set_up_test_model(app_label)
+        operation_1 = migrations.AddField("Pony", "field", SerialField())
+        operation_2 = migrations.RemoveField("Pony", "field")
+        operation_3 = migrations.AlterField(
+            "Pony", "green", SerialField(default=1), preserve_default=False
+        )
+        operation_4 = migrations.AlterField("Pony", "pink", SerialField())
+        table_name = f"{app_label}_pony"
+        self.assertColumnNotExists(table_name, "field")
+        # Add field.
+        new_state = project_state.clone()
+        operation_1.state_forwards(app_label, new_state)
+        with connection.schema_editor() as editor:
+            operation_1.database_forwards(app_label, editor, project_state, new_state)
+        self.assertColumnExists(table_name, "field")
+        pony = new_state.apps.get_model(app_label, "pony").objects.create(weight=1)
+        self.assertEqual(pony.field, 1)
+        self.assertIsNone(pony.green)
+        self.assertEqual(pony.pink, 3)
+        # Remove field.
+        project_state, new_state = new_state, new_state.clone()
+        operation_2.state_forwards(app_label, new_state)
+        with connection.schema_editor() as editor:
+            operation_2.database_forwards(app_label, editor, project_state, new_state)
+        self.assertColumnNotExists(table_name, "field")
+        # Alter field.
+        project_state, new_state = new_state, new_state.clone()
+        operation_3.state_forwards(app_label, new_state)
+        with connection.schema_editor() as editor:
+            operation_3.database_forwards(app_label, editor, project_state, new_state)
+        pony = new_state.apps.get_model(app_label, "pony").objects.get()
+        self.assertEqual(pony.green, 1)
+        self.assertEqual(pony.pink, 3)
+        # Alter field.
+        project_state, new_state = new_state, new_state.clone()
+        operation_4.state_forwards(app_label, new_state)
+        with connection.schema_editor() as editor:
+            operation_4.database_forwards(app_label, editor, project_state, new_state)
+        pony = new_state.apps.get_model(app_label, "pony").objects.create(weight=1)
+        self.assertEqual(pony.green, 2)
+        self.assertEqual(pony.pink, 4)
 
 
 class SwappableOperationTests(OperationTestBase):

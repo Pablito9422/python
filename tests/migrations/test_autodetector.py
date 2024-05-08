@@ -1,6 +1,7 @@
 import copy
 import functools
 import re
+import unittest
 from unittest import mock
 
 from django.apps import apps
@@ -15,7 +16,7 @@ from django.db.migrations.questioner import MigrationQuestioner
 from django.db.migrations.state import ModelState, ProjectState
 from django.db.models.functions import Concat, Lower
 from django.test import SimpleTestCase, TestCase, override_settings
-from django.test.utils import isolate_lru_cache
+from django.test.utils import isolate_lru_cache, tag
 
 from .models import FoodManager, FoodQuerySet
 
@@ -4956,6 +4957,42 @@ class AutodetectorTests(BaseAutodetectorTests):
         self.assertNumberMigrations(changes, "testapp", 1)
         self.assertOperationTypes(changes, "testapp", 0, ["CreateModel"])
         self.assertOperationAttributes(changes, "testapp", 0, 0, name="Book")
+
+    @unittest.skipUnless(connection.vendor == "postgresql", "PostgreSQL specific")
+    @tag("serial")
+    @mock.patch(
+        "django.db.migrations.questioner.MigrationQuestioner.ask_not_null_addition"
+    )
+    def test_add_serial_field(self, mocked_ask_method):
+        from django.contrib.postgres.fields import SerialField
+
+        before = [
+            ModelState(
+                "app",
+                "serial",
+                [
+                    ("id", models.AutoField(primary_key=True)),
+                ],
+            ),
+        ]
+        after = [
+            ModelState(
+                "app",
+                "serial",
+                [
+                    ("id", models.AutoField(primary_key=True)),
+                    ("field", SerialField()),
+                ],
+            ),
+        ]
+
+        changes = self.get_changes(before, after)
+        self.assertEqual(mocked_ask_method.call_count, 1)
+        self.assertNumberMigrations(changes, "app", 1)
+        self.assertOperationTypes(changes, "app", 0, ["AddField"])
+        self.assertOperationAttributes(
+            changes, "app", 0, 0, name="field", model_name="serial"
+        )
 
 
 class MigrationSuggestNameTests(SimpleTestCase):
