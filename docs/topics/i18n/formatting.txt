@@ -136,6 +136,26 @@ control localization over a large section of a template, use the
 Returns a string representation for unlocalized numbers  (``int``, ``float``,
 or ``Decimal``).
 
+When localization is disabled with the template filters and tags described
+above, the general formatting settings below provide localization formats
+to apply instead.
+
+* :setting:`DATE_FORMAT`
+* :setting:`DATE_INPUT_FORMATS`
+* :setting:`DATETIME_FORMAT`
+* :setting:`DATETIME_INPUT_FORMATS`
+* :setting:`DECIMAL_SEPARATOR`
+* :setting:`LANGUAGE_CODE`
+* :setting:`MONTH_DAY_FORMAT`
+* :setting:`NUMBER_GROUPING`
+* :setting:`SHORT_DATE_FORMAT`
+* :setting:`SHORT_DATETIME_FORMAT`
+* :setting:`THOUSAND_SEPARATOR`
+* :setting:`TIME_FORMAT`
+* :setting:`TIME_INPUT_FORMATS`
+* :setting:`USE_THOUSAND_SEPARATOR`
+* :setting:`YEAR_MONTH_FORMAT`
+
 .. _custom-format-files:
 
 Creating custom format files
