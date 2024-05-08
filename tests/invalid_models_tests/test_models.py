@@ -6,7 +6,7 @@ from django.db import connection, connections, models
 from django.db.models.functions import Abs, Lower, Round
 from django.db.models.signals import post_init
 from django.test import SimpleTestCase, TestCase, skipUnlessDBFeature
-from django.test.utils import isolate_apps, override_settings, register_lookup
+from django.test.utils import isolate_apps, override_settings, register_lookup, tag
 
 
 class EmptyRouter:
@@ -2816,6 +2816,7 @@ class ConstraintsTests(TestCase):
 
         self.assertEqual(Bar.check(databases=self.databases), [])
 
+    @tag("composite")
     def test_composite_pk_with_primary_key_set_to_true(self):
         class Model(models.Model):
             id_1 = models.IntegerField(primary_key=True)
@@ -2828,7 +2829,7 @@ class ConstraintsTests(TestCase):
             Model.check(databases=self.databases),
             [
                 Error(
-                    "primary_key=True must not be set if Meta.primary_key is defined.",
+                    "id_1 may not set primary_key=True if Meta.primary_key is defined.",
                     obj=Model,
                     id="models.E042",
                 ),

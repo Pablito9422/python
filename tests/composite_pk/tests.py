@@ -3,7 +3,7 @@ import unittest
 from django.db import connection
 from django.db.models.query_utils import PathInfo
 from django.db.models.sql import Query
-from django.test import TestCase
+from django.test import TestCase, tag
 
 from .models import Comment, Tenant, User
 
@@ -13,6 +13,7 @@ def get_constraints(table):
         return connection.introspection.get_constraints(cursor, table)
 
 
+@tag("composite")
 class CompositePKTests(TestCase):
     maxDiff = None
 
@@ -108,6 +109,7 @@ class CompositePKTests(TestCase):
         self.assertEqual(result, [self.comment])
 
 
+@tag("composite")
 class NamesToPathTests(TestCase):
     def test_id(self):
         query = Query(User)

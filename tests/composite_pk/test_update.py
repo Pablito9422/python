@@ -2,11 +2,12 @@ import unittest
 
 from django.db import connection
 from django.test import TestCase
-from django.test.utils import CaptureQueriesContext
+from django.test.utils import CaptureQueriesContext, tag
 
 from .models import Comment, Tenant, User
 
 
+@tag("composite")
 class CompositePKUpdateTests(TestCase):
     """
     Test the .update(), .save(), .bulk_update(), .update_or_create() methods of

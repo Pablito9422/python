@@ -1,5 +1,3 @@
-from collections.abc import Iterable
-
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Field
 from django.db.models.expressions import Col, Expression
@@ -14,11 +12,11 @@ class TupleExact(Exact):
             raise ValueError(
                 "The left-hand side of the 'exact' lookup must be an instance of Cols"
             )
-        if not isinstance(self.rhs, Iterable):
+        if not isinstance(self.rhs, (tuple, list)):
             raise ValueError(
-                "The right-hand side of the 'exact' lookup must be an iterable"
+                "The right-hand side of the 'exact' lookup must be a tuple or a list"
             )
-        if len(list(self.lhs)) != len(list(self.rhs)):
+        if len(self.lhs) != len(self.rhs):
             raise ValueError(
                 "The left-hand side and right-hand side of the 'exact' lookup must "
                 "have the same number of elements"
@@ -41,17 +39,16 @@ class TupleIn(In):
             raise ValueError(
                 "The left-hand side of the 'in' lookup must be an instance of Cols"
             )
-        if not isinstance(self.rhs, Iterable):
+        if not isinstance(self.rhs, (tuple, list)):
             raise ValueError(
-                "The right-hand side of the 'in' lookup must be an iterable"
+                "The right-hand side of the 'in' lookup must be a tuple or a list"
             )
-        if not all(isinstance(vals, Iterable) for vals in self.rhs):
+        if not all(isinstance(vals, (tuple, list)) for vals in self.rhs):
             raise ValueError(
-                "The right-hand side of the 'in' lookup must be an iterable of "
-                "iterables"
+                "The right-hand side of the 'in' lookup must be a set of "
+                "tuples or lists"
             )
-        lhs_len = len(tuple(self.lhs))
-        if not all(lhs_len == len(tuple(vals)) for vals in self.rhs):
+        if not all(len(self.lhs) == len(vals) for vals in self.rhs):
             raise ValueError(
                 "The left-hand side and right-hand side of the 'in' lookup must "
                 "have the same number of elements"
@@ -99,6 +96,9 @@ class Cols(Expression):
 
     def __iter__(self):
         return iter(self.get_source_expressions())
+
+    def __len__(self):
+        return len(self.targets)
 
 
 def is_pk_not_set(pk):

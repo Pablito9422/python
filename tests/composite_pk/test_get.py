@@ -1,11 +1,12 @@
 from django.db import connection
 from django.db.models.query import MAX_GET_RESULTS
 from django.test import TestCase
-from django.test.utils import CaptureQueriesContext
+from django.test.utils import CaptureQueriesContext, tag
 
 from .models import Comment, Tenant, User
 
 
+@tag("composite")
 class CompositePKGetTests(TestCase):
     """
     Test the .get(), .get_or_create() methods of composite_pk models.
@@ -200,7 +201,8 @@ class CompositePKGetTests(TestCase):
 
     def test_lookup_errors(self):
         with self.assertRaisesMessage(
-            ValueError, "The right-hand side of the 'exact' lookup must be an iterable"
+            ValueError,
+            "The right-hand side of the 'exact' lookup must be a tuple or a list",
         ):
             Comment.objects.get(pk=1)
         with self.assertRaisesMessage(
@@ -210,13 +212,14 @@ class CompositePKGetTests(TestCase):
         ):
             Comment.objects.get(pk=(1, 2, 3))
         with self.assertRaisesMessage(
-            ValueError, "The right-hand side of the 'in' lookup must be an iterable"
+            ValueError,
+            "The right-hand side of the 'in' lookup must be a tuple or a list",
         ):
             Comment.objects.get(pk__in=1)
         with self.assertRaisesMessage(
             ValueError,
-            "The right-hand side of the 'in' lookup must be an iterable "
-            "of iterables",
+            "The right-hand side of the 'in' lookup must be a set "
+            "of tuples or lists",
         ):
             Comment.objects.get(pk__in=(1, 2, 3))
         with self.assertRaisesMessage(

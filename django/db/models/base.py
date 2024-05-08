@@ -1731,17 +1731,19 @@ class Model(AltersData, metaclass=ModelBase):
     def _check_composite_pk(cls):
         errors = []
 
-        if cls._meta.primary_key and any(
-            field for field in cls._meta.fields if field.primary_key
-        ):
-            errors.append(
-                checks.Error(
-                    "primary_key=True must not be set if Meta.primary_key "
-                    "is defined.",
-                    obj=cls,
-                    id="models.E042",
+        if cls._meta.primary_key is None:
+            return errors
+
+        for field in cls._meta.fields:
+            if field.primary_key:
+                errors.append(
+                    checks.Error(
+                        "%s may not set primary_key=True if Meta.primary_key "
+                        "is defined." % (field.name,),
+                        obj=cls,
+                        id="models.E042",
+                    )
                 )
-            )
 
         return errors
 

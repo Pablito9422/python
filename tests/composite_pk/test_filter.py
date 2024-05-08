@@ -1,10 +1,11 @@
 from django.db import connection
 from django.test import TestCase
-from django.test.utils import CaptureQueriesContext
+from django.test.utils import CaptureQueriesContext, tag
 
 from .models import Comment, Tenant, User
 
 
+@tag("composite")
 class CompositePKFilterTests(TestCase):
     """
     Test the .filter(), .order_by(), .first(), .last(), .latest(), .earliest(),

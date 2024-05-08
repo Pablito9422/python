@@ -2,11 +2,12 @@ import unittest
 
 from django.db import connection
 from django.test import TestCase
-from django.test.utils import CaptureQueriesContext
+from django.test.utils import CaptureQueriesContext, tag
 
 from .models import Tenant, User
 
 
+@tag("composite")
 class CompositePKCreateTests(TestCase):
     """
     Test the .create(), .save(), .bulk_create(), .get_or_create(), .update_or_create()
