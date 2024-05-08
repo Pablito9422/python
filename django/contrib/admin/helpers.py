@@ -1,4 +1,5 @@
 import json
+import random
 
 from django import forms
 from django.contrib.admin.utils import (
@@ -18,8 +19,10 @@ from django.db.models.fields.related import (
 from django.forms.utils import flatatt
 from django.template.defaultfilters import capfirst, linebreaksbr
 from django.urls import NoReverseMatch, reverse
+from django.utils.functional import cached_property
 from django.utils.html import conditional_escape, format_html
 from django.utils.safestring import mark_safe
+from django.utils.text import slugify
 from django.utils.translation import gettext
 from django.utils.translation import gettext_lazy as _
 
@@ -116,9 +119,20 @@ class Fieldset:
 
     @property
     def media(self):
-        if "collapse" in self.classes:
-            return forms.Media(js=["admin/js/collapse.js"])
         return forms.Media()
+
+    @cached_property
+    def heading_id(self):
+        name = "fieldset"
+        if self.name:
+            name = slugify(self.name, allow_unicode=False)
+        return f"{name}-heading-{random.randint(1000, 9999)}"
+
+    @cached_property
+    def is_collapsible(self):
+        if any([field in self.fields for field in self.form.errors]):
+            return False
+        return "collapse" in self.classes
 
     def __iter__(self):
         for field in self.fields:
@@ -437,6 +451,12 @@ class InlineAdminFormSet:
     @property
     def forms(self):
         return self.formset.forms
+
+    @cached_property
+    def is_collapsible(self):
+        if any(self.formset.errors):
+            return False
+        return "collapse" in self.classes
 
     def non_form_errors(self):
         return self.formset.non_form_errors()
