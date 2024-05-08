@@ -38,6 +38,13 @@ from django.db.models.expressions import (
 )
 from django.db.models.fields import *  # NOQA
 from django.db.models.fields import __all__ as fields_all
+from django.db.models.fields.fetching import (
+    FETCH_ONE,
+    FETCH_PEERS,
+    RAISE,
+    lazy_mode,
+    set_default_fetching_mode,
+)
 from django.db.models.fields.files import FileField, ImageField
 from django.db.models.fields.generated import GeneratedField
 from django.db.models.fields.json import JSONField
@@ -103,6 +110,11 @@ __all__ += [
     "GeneratedField",
     "JSONField",
     "OrderWrt",
+    "FETCH_ONE",
+    "FETCH_PEERS",
+    "RAISE",
+    "lazy_mode",
+    "set_default_fetching_mode",
     "Lookup",
     "Transform",
     "Manager",

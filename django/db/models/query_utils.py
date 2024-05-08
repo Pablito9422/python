@@ -14,6 +14,7 @@ from collections import namedtuple
 from django.core.exceptions import FieldError
 from django.db import DEFAULT_DB_ALIAS, DatabaseError, connections
 from django.db.models.constants import LOOKUP_SEP
+from django.db.models.fields.fetching import get_fetching_mode
 from django.utils import tree
 from django.utils.functional import cached_property
 from django.utils.hashable import make_hashable
@@ -216,7 +217,8 @@ class DeferredAttribute:
                     raise AttributeError(
                         "Cannot read a generated field from an unsaved model."
                     )
-                instance.refresh_from_db(fields=[field_name])
+
+                get_fetching_mode()(self, instance)
             else:
                 data[field_name] = val
         return data[field_name]
@@ -232,6 +234,20 @@ class DeferredAttribute:
         if self.field.primary_key and self.field != link_field:
             return getattr(instance, link_field.attname)
         return None
+
+    def fetch(self, instances):
+        if len(instances) == 1:
+            instances[0].refresh_from_db(fields=[self.field.attname])
+        else:
+            attname = self.field.attname
+            value_by_pk = {
+                pk: value
+                for pk, value in self.field.model._base_manager.db_manager()
+                .filter(pk__in={i.pk for i in instances})
+                .values_list("pk", attname)
+            }
+            for instance in instances:
+                setattr(instance, attname, value_by_pk[instance.pk])
 
 
 class class_or_instance_method:

@@ -26,6 +26,47 @@ only officially support the latest release of each series.
 What's new in Django 5.1
 ========================
 
+Model field fetching modes
+--------------------------
+
+The on-demand fetching behavior of model fields is now configurable, with three
+possible modes:
+
+1. ``FETCH_ONE`` fetches the missing field for the current instance only.
+2. ``FETCH_PEERS`` fetches the missing field for all instances that came from
+   the same ``QuerySet``. This mode fixes most cases of the “N+1 queries
+   problem”.
+3. ``RAISE`` raises a ``LazyFieldAccess`` exception. Use this mode to prevent
+   unintentional queries in performance-critical sections.
+
+``FETCH_ONE`` represents Django’s existing behavior and remains the default.
+Modes apply to deferred fields, foreign keys, and reverse foreign key
+accessors.
+
+Configure the global default fetching mode with ``set_default_fetching_mode``:
+
+.. code-block:: python
+
+    from django.db.models import set_default_fetching_mode, FETCH_PEERS
+
+    # Reduce most instances of N+1 queries to 2 queries
+    set_default_fetching_mode(FETCH_PEERS)
+
+Or, override the mode for a section with ``fetching_mode``, which acts as both
+a function decorator and context manager:
+
+.. code-block:: python
+
+    from django.db.models import fetching_mode, RAISE
+
+
+    def dashboard(request):
+        chart = get_chart_data(request)
+        # Raise an exception for any on-demand queries attempted during
+        # template rendering
+        with fetching_mode(RAISE):
+            return render(request, "dashboard.html", {"chart": chart})
+
 Minor features
 --------------
 
