@@ -147,6 +147,9 @@ class CompositePrimaryKey(Field):
     def __iter__(self):
         return iter(self.fields)
 
+    def __len__(self):
+        return len(self.fields)
+
     @cached_property
     def cached_col(self):
         return Cols(self.model._meta.db_table, self.fields, self)
